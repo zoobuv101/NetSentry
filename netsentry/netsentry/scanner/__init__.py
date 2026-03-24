@@ -1,1 +1,0 @@
-"""NetSentry netsentry/scanner module."""

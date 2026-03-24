@@ -1,1 +1,0 @@
-"""NetSentry database layer."""

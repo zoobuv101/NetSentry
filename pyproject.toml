@@ -29,6 +29,7 @@ dependencies = [
     # Network scanning
     "python-nmap>=0.7.1",
     "scapy>=2.5.0",
+    "netifaces>=0.11.0",
     # Notifications
     "apprise>=1.9.0",
     # Crypto (for Deco AES/RSA)

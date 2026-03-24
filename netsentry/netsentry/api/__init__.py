@@ -1,1 +1,0 @@
-"""NetSentry REST API."""
