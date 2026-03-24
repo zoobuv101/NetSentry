@@ -50,7 +50,7 @@ async def arp_sweep(
 
     try:
         stdout, stderr = await _run_subprocess(
-            ["arp-scan", "--localnet", "--quiet", subnet],
+            ["arp-scan", "--quiet", subnet],
             timeout=timeout,
         )
     except FileNotFoundError:
