@@ -54,6 +54,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.exception("FATAL: database init failed")
         raise
 
+    # ── Notification dispatcher ───────────────────────────────────────
+    try:
+        from netsentry.notifications.dispatcher import NotificationDispatcher
+        from netsentry.notifications.registry import set_dispatcher
+
+        dispatcher = NotificationDispatcher.from_environment()
+        set_dispatcher(dispatcher)
+        app.state.dispatcher = dispatcher
+    except Exception:
+        logger.exception("Notification dispatcher failed to start")
+
     # ── Scan orchestrator ─────────────────────────────────────────────
     try:
         from netsentry.scanner.orchestrator import ScanOrchestrator

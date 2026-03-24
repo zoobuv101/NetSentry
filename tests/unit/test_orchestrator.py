@@ -199,15 +199,15 @@ class TestScanOrchestrator:
             mock_icmp.return_value = []
             await orchestrator.run_scan(ScanProfile.QUICK)
 
-        # Two more scans — device absent (2 = default offline threshold)
+        # Five more scans — device absent (5 = offline threshold)
         with (
             patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
             patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
         ):
             mock_arp.return_value = []
             mock_icmp.return_value = []
-            await orchestrator.run_scan(ScanProfile.QUICK)
-            await orchestrator.run_scan(ScanProfile.QUICK)
+            for _ in range(5):
+                await orchestrator.run_scan(ScanProfile.QUICK)
 
         from netsentry.db.repositories.devices import DeviceRepository
 
@@ -231,15 +231,15 @@ class TestScanOrchestrator:
             mock_icmp.return_value = []
             await orchestrator.run_scan(ScanProfile.QUICK)
 
-        # Scans 2+3: offline threshold hit
+        # Scans 2-6: offline threshold hit (threshold=5)
         with (
             patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
             patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
         ):
             mock_arp.return_value = []
             mock_icmp.return_value = []
-            await orchestrator.run_scan(ScanProfile.QUICK)
-            await orchestrator.run_scan(ScanProfile.QUICK)
+            for _ in range(5):
+                await orchestrator.run_scan(ScanProfile.QUICK)
 
         # Scan 4: device back
         with (
