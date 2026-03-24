@@ -21,6 +21,7 @@ from netsentry.notifications.registry import notify
 from netsentry.scanner.arp import arp_sweep
 from netsentry.scanner.icmp import icmp_sweep
 from netsentry.scanner.models import DiscoveredHost
+from netsentry.scanner.netbios import netbios_scan
 from netsentry.scanner.oui import OuiDatabase
 from netsentry.scanner.profiles import ScanProfile, get_profile_tools
 from netsentry.scanner.tcp import tcp_syn_probe
@@ -115,13 +116,35 @@ class ScanOrchestrator:
             if "icmp" in tools:
                 icmp_hosts = await icmp_sweep(subnet)
                 for h in icmp_hosts:
-                    # ICMP hosts have no MAC — only add if not already seen via ARP
                     if not any(d.ip == h.ip for d in discovered.values()):
-                        discovered[h.ip] = h  # use IP as key for MAC-less hosts
+                        discovered[h.ip] = h
 
-            if "tcp" in tools and discovered:
-                ips = [h.ip for h in discovered.values()]
-                await tcp_syn_probe(ips)  # Results stored in US0008+ device detail
+        # ── Port scan (STANDARD+) ──────────────────────────────────────────
+        # Run TCP SYN probe on all discovered hosts and build ip→ports map
+        port_results: dict[str, list[int]] = {}  # ip → open_ports
+        if "tcp" in tools and discovered:
+            ips = [h.ip for h in discovered.values() if h.ip]
+            scan_results = await tcp_syn_probe(ips)
+            for r in scan_results:
+                if r.open_ports:
+                    port_results[r.ip] = r.open_ports
+            if port_results:
+                logger.info(
+                    "Port scan: %d/%d hosts have open ports",
+                    len(port_results),
+                    len(ips),
+                )
+
+        # ── NetBIOS name resolution (STANDARD+) ───────────────────────────
+        netbios_results: dict[str, str] = {}  # ip → name
+        if "tcp" in tools and discovered:
+            ips = [h.ip for h in discovered.values() if h.ip]
+            nb_hosts = await netbios_scan(ips)
+            for nb in nb_hosts:
+                if nb.hostname and nb.ip:
+                    netbios_results[nb.ip] = nb.hostname
+            if netbios_results:
+                logger.info("NetBIOS: resolved %d hostnames", len(netbios_results))
 
         # ── Inventory update phase ─────────────────────────────────────────
         seen_macs: set[str] = set()
@@ -132,12 +155,15 @@ class ScanOrchestrator:
             vendor = self._oui_db.lookup(host.mac)
             existing = await self._devices.get(host.mac)
 
+            # Prefer NetBIOS hostname over ARP hostname
+            hostname = host.hostname or netbios_results.get(host.ip or "") or None
+
             if existing is None:
                 # Brand new device
                 await self._devices.upsert(
                     mac=host.mac,
                     ip=host.ip,
-                    hostname=host.hostname,
+                    hostname=hostname,
                     vendor=vendor,
                     is_online=True,
                 )
@@ -152,7 +178,7 @@ class ScanOrchestrator:
                     event_type="device.new",
                     severity="urgent",
                     mac=host.mac,
-                    hostname=host.hostname,
+                    hostname=hostname,
                     ip=host.ip,
                     details={"vendor": vendor},
                 )
@@ -164,7 +190,7 @@ class ScanOrchestrator:
                 await self._devices.upsert(
                     mac=host.mac,
                     ip=host.ip,
-                    hostname=host.hostname or existing.hostname,
+                    hostname=hostname or existing.hostname,
                     vendor=vendor or existing.vendor,
                     is_online=True,
                 )
@@ -179,6 +205,62 @@ class ScanOrchestrator:
                         details={"ip": host.ip},
                     )
                     logger.info("Device back online: %s", host.mac)
+
+            # ── Enrich: store port scan results ───────────────────────────
+            open_ports = port_results.get(host.ip or "", [])
+            if open_ports or (host.ip and host.ip in port_results):
+                await self._devices.enrich(
+                    mac=host.mac,
+                    open_ports=open_ports,
+                    mark_port_scan=True,
+                )
+
+            # ── Enrich: run device identification with ports ───────────────
+            # Feed vendor + hostname + open_ports into the rule engine
+            if open_ports or vendor or hostname:
+                from netsentry.identification.rules import identify_by_rules
+
+                result = identify_by_rules(
+                    vendor=vendor or existing.vendor if existing else vendor,
+                    hostname=hostname or (existing.hostname if existing else None),
+                    open_ports=open_ports,
+                )
+                if result.category and result.confidence >= 0.6:
+                    existing_now = await self._devices.get(host.mac)
+                    # Don't overwrite manually-set category
+                    if existing_now and not existing_now.category:
+                        await self._devices.patch(
+                            mac=host.mac,
+                            category=result.category,
+                            device_type=result.device_type,
+                        )
+
+        # ── OS fingerprinting (DEEP profile only) ─────────────────────────
+        if "os" in tools:
+            from netsentry.scanner.os_detect import os_fingerprint
+
+            fingerprint_targets = [
+                host
+                for host in discovered.values()
+                if host.mac and host.ip and port_results.get(host.ip or "")
+            ]
+            logger.info("OS fingerprinting %d hosts with open ports", len(fingerprint_targets))
+            for host in fingerprint_targets:
+                fp = await os_fingerprint(host.ip or "")
+                if fp and fp.confidence >= 0.7:
+                    await self._devices.enrich(
+                        mac=host.mac or "",
+                        os_family=fp.os_family,
+                        os_version=fp.os_version,
+                        mark_os_scan=True,
+                    )
+                    logger.debug(
+                        "OS detected for %s: %s %s (%.0f%%)",
+                        host.mac,
+                        fp.os_family,
+                        fp.os_version or "",
+                        fp.confidence * 100,
+                    )
 
         # ── Offline detection phase ────────────────────────────────────────
         # For every online device not seen in the ARP scan, do a direct

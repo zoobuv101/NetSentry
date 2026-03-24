@@ -14,6 +14,13 @@ const makeDevice = (overrides: Partial<Device> = {}): Device => ({
   device_type: null,
   os_family: null,
   os_version: null,
+  netbios_name: null,
+  ssdp_device_type: null,
+  open_ports: [],
+  services: [],
+  mdns_services: [],
+  last_port_scan: null,
+  last_os_scan: null,
   current_ip: "192.168.1.10",
   hostname: "my-macbook",
   lifecycle: "active",
@@ -27,10 +34,14 @@ const makeDevice = (overrides: Partial<Device> = {}): Device => ({
 
 describe("DeviceTable", () => {
   it("renders device rows", () => {
-    const devices = [makeDevice(), makeDevice({ mac_address: "11:22:33:44:55:66" })];
-    render(<DeviceTable devices={devices} loading={false} error={null} />);
-    expect(screen.getByText("aa:bb:cc:dd:ee:ff")).toBeInTheDocument();
-    expect(screen.getByText("11:22:33:44:55:66")).toBeInTheDocument();
+    const devices = [
+      makeDevice({ friendly_name: "Device One" }),
+      makeDevice({ mac_address: "11:22:33:44:55:66", friendly_name: "Device Two" }),
+    ];
+    const { container } = render(<DeviceTable devices={devices} loading={false} error={null} />);
+    expect(container.textContent).toContain("Device One");
+    expect(container.textContent).toContain("Device Two");
+    expect(screen.getAllByText("Apple Inc.").length).toBeGreaterThan(0);
   });
 
   it("shows online badge for online device", () => {
@@ -74,7 +85,7 @@ describe("DeviceTable", () => {
 
   it("shows vendor column", () => {
     render(<DeviceTable devices={[makeDevice()]} loading={false} error={null} />);
-    expect(screen.getByText("Apple Inc.")).toBeInTheDocument();
+    expect(screen.getAllByText("Apple Inc.").length).toBeGreaterThan(0);
   });
 
   it("shows IP address column", () => {

@@ -1,5 +1,12 @@
 // NetSentry API types — mirrors netsentry/api/v1/devices.py schemas
 
+export interface ServiceRecord {
+  port: number;
+  protocol: string;
+  service: string | null;
+  version: string | null;
+}
+
 export interface Device {
   mac_address: string;
   friendly_name: string | null;
@@ -13,6 +20,13 @@ export interface Device {
   os_version: string | null;
   current_ip: string | null;
   hostname: string | null;
+  netbios_name: string | null;
+  ssdp_device_type: string | null;
+  open_ports: number[];
+  services: ServiceRecord[];
+  mdns_services: string[];
+  last_port_scan: string | null;
+  last_os_scan: string | null;
   lifecycle: "active" | "historic" | "deleted";
   connection_type: string | null;
   is_online: boolean;

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -34,6 +35,13 @@ class DeviceResponse(BaseModel):
     os_version: str | None
     current_ip: str | None
     hostname: str | None
+    netbios_name: str | None
+    ssdp_device_type: str | None
+    open_ports: list[int]
+    services: list[dict[str, Any]]
+    mdns_services: list[str]
+    last_port_scan: str | None
+    last_os_scan: str | None
     lifecycle: str
     connection_type: str | None
     is_online: bool
@@ -88,6 +96,49 @@ def _normalise_mac_param(mac: str) -> str:
         raise HTTPException(status_code=422, detail=f"Invalid MAC address: '{mac}'") from None
 
 
+def _parse_json_list(raw: str, expected_type: type) -> list[object]:
+    """Safely parse a JSON list column; return [] on error."""
+    try:
+        result = json.loads(raw or "[]")
+        return result if isinstance(result, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def _device_to_response(d: object) -> DeviceResponse:
+    """Convert a Device domain model to a DeviceResponse."""
+    from netsentry.db.models import Device
+
+    assert isinstance(d, Device)
+    return DeviceResponse(
+        mac_address=d.mac_address,
+        friendly_name=d.friendly_name,
+        category=d.category,
+        subcategory=d.subcategory,
+        owner=d.owner,
+        notes=d.notes,
+        vendor=d.vendor,
+        device_type=d.device_type,
+        os_family=d.os_family,
+        os_version=d.os_version,
+        current_ip=d.current_ip,
+        hostname=d.hostname,
+        netbios_name=d.netbios_name,
+        ssdp_device_type=d.ssdp_device_type,
+        open_ports=_parse_json_list(d.open_ports_json, int),
+        services=_parse_json_list(d.services_json, dict),
+        mdns_services=_parse_json_list(d.mdns_services_json, str),
+        last_port_scan=d.last_port_scan,
+        last_os_scan=d.last_os_scan,
+        lifecycle=d.lifecycle,
+        connection_type=d.connection_type,
+        is_online=d.is_online,
+        is_monitored=d.is_monitored,
+        first_seen=d.first_seen.isoformat(),
+        last_seen=d.last_seen.isoformat(),
+    )
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 
@@ -103,29 +154,7 @@ async def list_devices(
     Use ?lifecycle=historic for archived devices.
     """
     device_list = await devices.list(lifecycle=lifecycle, limit=limit)
-    return [
-        DeviceResponse(
-            mac_address=d.mac_address,
-            friendly_name=d.friendly_name,
-            category=d.category,
-            subcategory=d.subcategory,
-            owner=d.owner,
-            notes=d.notes,
-            vendor=d.vendor,
-            device_type=d.device_type,
-            os_family=d.os_family,
-            os_version=d.os_version,
-            current_ip=d.current_ip,
-            hostname=d.hostname,
-            lifecycle=d.lifecycle,
-            connection_type=d.connection_type,
-            is_online=d.is_online,
-            is_monitored=d.is_monitored,
-            first_seen=d.first_seen.isoformat(),
-            last_seen=d.last_seen.isoformat(),
-        )
-        for d in device_list
-    ]
+    return [_device_to_response(d) for d in device_list]
 
 
 @router.get("/devices/{mac}", response_model=DeviceDetailResponse)
@@ -147,25 +176,9 @@ async def get_device(
     ip_history = await ip_repo.list_for_device(norm_mac)
     recent_events = await event_repo.list_for_device(norm_mac, limit=10)
 
+    base = _device_to_response(device)
     return DeviceDetailResponse(
-        mac_address=device.mac_address,
-        friendly_name=device.friendly_name,
-        category=device.category,
-        subcategory=device.subcategory,
-        owner=device.owner,
-        notes=device.notes,
-        vendor=device.vendor,
-        device_type=device.device_type,
-        os_family=device.os_family,
-        os_version=device.os_version,
-        current_ip=device.current_ip,
-        hostname=device.hostname,
-        lifecycle=device.lifecycle,
-        connection_type=device.connection_type,
-        is_online=device.is_online,
-        is_monitored=device.is_monitored,
-        first_seen=device.first_seen.isoformat(),
-        last_seen=device.last_seen.isoformat(),
+        **base.model_dump(),
         ip_history=[
             IpHistoryEntry(
                 ip_address=ip.ip_address,

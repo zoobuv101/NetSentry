@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import aiosqlite
 
@@ -20,6 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 def _row_to_device(row: aiosqlite.Row) -> Device:
+    keys = row.keys() if hasattr(row, "keys") else []
+
+    def _get(col: str, default: object = None) -> object:
+        return row[col] if col in keys else default
+
     return Device(
         mac_address=row["mac_address"],
         friendly_name=row["friendly_name"],
@@ -43,6 +49,13 @@ def _row_to_device(row: aiosqlite.Row) -> Device:
         last_seen=from_iso8601(row["last_seen"]),
         created_at=from_iso8601(row["created_at"]),
         updated_at=from_iso8601(row["updated_at"]),
+        open_ports_json=str(_get("open_ports_json", "[]")),
+        services_json=str(_get("services_json", "[]")),
+        mdns_services_json=str(_get("mdns_services_json", "[]")),
+        netbios_name=_get("netbios_name"),  # type: ignore[arg-type]
+        ssdp_device_type=_get("ssdp_device_type"),  # type: ignore[arg-type]
+        last_port_scan=_get("last_port_scan"),  # type: ignore[arg-type]
+        last_os_scan=_get("last_os_scan"),  # type: ignore[arg-type]
     )
 
 
@@ -196,3 +209,56 @@ class DeviceRepository(BaseRepository):
                 (mac,),
             )
         await self.execute("DELETE FROM devices WHERE mac_address = ?", (mac,))
+
+    async def enrich(
+        self,
+        mac: str,
+        open_ports: list[int] | None = None,  # type: ignore[valid-type]
+        services: list[Any] | None = None,  # type: ignore[valid-type]
+        os_family: str | None = None,
+        os_version: str | None = None,
+        netbios_name: str | None = None,
+        ssdp_device_type: str | None = None,
+        mdns_services: list[str] | None = None,  # type: ignore[valid-type]
+        mark_port_scan: bool = False,
+        mark_os_scan: bool = False,
+    ) -> None:
+        """
+        Update enrichment fields for a device without touching identity fields.
+        Only provided (non-None) values are written.
+        """
+        import json
+
+        mac = normalise_mac(mac)
+        now = to_iso8601(utc_now())
+
+        updates: list[tuple[str, object]] = [("updated_at", now)]
+
+        if open_ports is not None:
+            updates.append(("open_ports_json", json.dumps(sorted(open_ports))))
+        if services is not None:
+            updates.append(("services_json", json.dumps(services)))
+        if os_family is not None:
+            updates.append(("os_family", os_family))
+        if os_version is not None:
+            updates.append(("os_version", os_version))
+        if netbios_name is not None:
+            updates.append(("netbios_name", netbios_name))
+        if ssdp_device_type is not None:
+            updates.append(("ssdp_device_type", ssdp_device_type))
+        if mdns_services is not None:
+            updates.append(("mdns_services_json", json.dumps(mdns_services)))
+        if mark_port_scan:
+            updates.append(("last_port_scan", now))
+        if mark_os_scan:
+            updates.append(("last_os_scan", now))
+
+        if len(updates) <= 1:
+            return  # nothing to write
+
+        set_clause = ", ".join(f"{col} = ?" for col, _ in updates)
+        values = [v for _, v in updates] + [mac]
+        await self.execute(
+            f"UPDATE devices SET {set_clause} WHERE mac_address = ?",  # noqa: S608
+            tuple(values),
+        )
