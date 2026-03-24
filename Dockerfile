@@ -70,14 +70,16 @@ COPY --from=frontend --chown=netsentry:root /frontend/dist /app/frontend/dist
 # Copy Alembic config
 COPY alembic.ini /app/alembic.ini
 
-# Allow netsentry (UID 1000) to run network scanning tools without password.
-# NET_RAW capability alone is insufficient — arp-scan and nmap need root
-# or explicit sudo permission to send raw packets.
-RUN apt-get update && apt-get install -y --no-install-recommends sudo && \
+# Grant network scanning capabilities directly to the binaries using setcap.
+# This allows UID 1000 to run raw packet tools without sudo or extra container caps.
+# cap_net_raw: send/receive raw packets (ARP, ICMP, nmap SYN scans)
+# cap_net_admin: needed by some nmap scan types
+RUN apt-get update && apt-get install -y --no-install-recommends libcap2-bin && \
     rm -rf /var/lib/apt/lists/* && \
-    echo "netsentry ALL=(root) NOPASSWD: /usr/sbin/arp-scan, /usr/bin/nmap, /usr/bin/fping, /usr/sbin/nbtscan" \
-    >> /etc/sudoers.d/netsentry && \
-    chmod 0440 /etc/sudoers.d/netsentry
+    setcap cap_net_raw+ep /usr/sbin/arp-scan && \
+    setcap cap_net_raw,cap_net_admin+ep /usr/bin/nmap && \
+    setcap cap_net_raw+ep /usr/bin/fping && \
+    (setcap cap_net_raw+ep /usr/sbin/nbtscan 2>/dev/null || true)
 
 # Create data and config directories with correct ownership
 RUN mkdir -p /data /config /app/data && chown -R netsentry:root /data /config /app
