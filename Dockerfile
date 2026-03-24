@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     curl \
     libpcap0.8 \
+    speedtest-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with UID 1000
