@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from netsentry.api.v1.availability import router as availability_router
 from netsentry.api.v1.deco import router as deco_router
 from netsentry.api.v1.devices import router as devices_router
 from netsentry.api.v1.identification import router as identification_router
@@ -16,3 +17,4 @@ router.include_router(scan_router, tags=["scan"])
 router.include_router(notifications_router, tags=["notifications"])
 router.include_router(deco_router, tags=["deco"])
 router.include_router(identification_router, tags=["identification"])
+router.include_router(availability_router, tags=["availability"])
