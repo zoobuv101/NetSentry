@@ -8,6 +8,7 @@ from netsentry.api.v1.devices import router as devices_router
 from netsentry.api.v1.identification import router as identification_router
 from netsentry.api.v1.notifications import router as notifications_router
 from netsentry.api.v1.scan import router as scan_router
+from netsentry.api.v1.speedtest import router as speedtest_router
 from netsentry.api.v1.system import router as system_router
 
 router = APIRouter()
@@ -18,3 +19,4 @@ router.include_router(notifications_router, tags=["notifications"])
 router.include_router(deco_router, tags=["deco"])
 router.include_router(identification_router, tags=["identification"])
 router.include_router(availability_router, tags=["availability"])
+router.include_router(speedtest_router, tags=["speedtest"])
