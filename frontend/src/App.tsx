@@ -1,15 +1,16 @@
 import { useState } from "react";
+import { DashboardPage } from "@/pages/DashboardPage";
 import { DevicesPage } from "@/pages/DevicesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 
-type Page = "devices" | "settings";
+type Page = "dashboard" | "devices" | "settings";
 
 export default function App() {
-  const [page, setPage] = useState<Page>("devices");
+  const [page, setPage] = useState<Page>("dashboard");
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center gap-3">
             <div className="flex items-center gap-2">
@@ -23,7 +24,7 @@ export default function App() {
               <span className="text-sm font-bold text-gray-900">NetSentry</span>
             </div>
             <nav className="flex items-center gap-1 ml-4">
-              {(["devices", "settings"] as Page[]).map((p) => (
+              {(["dashboard", "devices", "settings"] as Page[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPage(p)}
@@ -41,7 +42,9 @@ export default function App() {
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {page === "devices" ? <DevicesPage /> : <SettingsPage />}
+        {page === "dashboard" && <DashboardPage />}
+        {page === "devices"   && <DevicesPage />}
+        {page === "settings"  && <SettingsPage />}
       </main>
     </div>
   );

@@ -34,4 +34,15 @@ export const api = {
 
   // System
   getHealth: () => apiFetch<HealthResponse>("/system/health"),
+
+  // Dashboard
+  getDashboardSummary: () =>
+    apiFetch<unknown>("/dashboard/summary"),
+
+  // Speed test
+  getSpeedTestHistory: () =>
+    apiFetch<{ results: unknown[]; count: number }>("/speedtest/history"),
+
+  triggerSpeedTest: () =>
+    apiFetch<unknown>("/speedtest/run", { method: "POST" }),
 };
