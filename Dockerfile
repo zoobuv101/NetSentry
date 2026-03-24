@@ -71,7 +71,15 @@ COPY --from=frontend --chown=netsentry:root /frontend/dist /app/frontend/dist
 COPY alembic.ini /app/alembic.ini
 
 # Create data and config directories with correct ownership
-RUN mkdir -p /data /config && chown -R netsentry:root /data /config /app
+RUN mkdir -p /data /config /app/data && chown -R netsentry:root /data /config /app
+
+# Download Wireshark OUI vendor database for device identification
+# Falls back gracefully if network unavailable during build
+RUN curl -sL --max-time 30 \
+    "https://gitlab.com/wireshark/wireshark/-/raw/master/manuf" \
+    -o /app/data/manuf \
+    && echo "OUI database: $(wc -l < /app/data/manuf) entries" \
+    || echo "WARNING: OUI download failed — vendor lookup unavailable"
 
 # Switch to non-root user
 USER netsentry

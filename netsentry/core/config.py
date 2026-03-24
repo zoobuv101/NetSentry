@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     deco_username: str | None = None
     deco_password: str | None = None
     deco_poll_interval: int = 30
+    # Set to false if Deco is in AP mode (not router mode)
+    # In AP mode the local admin API may not be available
+    deco_router_mode: bool = True
 
     pfsense_api_url: str | None = None
     pfsense_api_key: str | None = None
@@ -124,19 +127,19 @@ class Settings(BaseSettings):
         if self.enable_deco_integration and not self.deco_host:
             logger.warning(
                 "DECO_HOST not set — Deco integration disabled. "
-                "Set ENABLE_DECO_INTEGRATION=false to suppress this warning."
+                "Set ENABLE_DECO_INTEGRATION=false to suppress."
             )
-        if self.enable_pfsense_integration and not self.pfsense_api_url:
-            logger.warning("PFSENSE_API_URL not set — pfSense integration disabled.")
+        if self.enable_pfsense_integration and not self.pfsense_host:
+            logger.warning(
+                "PFSENSE_HOST not set — pfSense SSH integration disabled. "
+                "Set ENABLE_PFSENSE_INTEGRATION=false to suppress."
+            )
         if self.enable_adguard_integration and not self.adguard_url:
             logger.warning("ADGUARD_URL not set — AdGuard integration disabled.")
         if self.enable_telegram and not self.telegram_bot_token:
             logger.warning("TELEGRAM_BOT_TOKEN not set — Telegram notifications disabled.")
         if self.enable_ai_identification and not self.anthropic_api_key:
-            logger.warning(
-                "ANTHROPIC_API_KEY not set — AI identification disabled. "
-                "Set ENABLE_AI_IDENTIFICATION=false to suppress this warning."
-            )
+            logger.warning("ANTHROPIC_API_KEY not set — AI identification disabled.")
 
 
 @lru_cache

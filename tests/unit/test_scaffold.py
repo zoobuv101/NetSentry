@@ -129,7 +129,7 @@ class TestSettings:
 
         warned_messages = " ".join(str(call) for call in mock_warn.call_args_list)
         assert "DECO_HOST" in warned_messages
-        assert "PFSENSE_API_URL" in warned_messages
+        assert "PFSENSE_HOST" in warned_messages
         assert "ADGUARD_URL" not in warned_messages
 
 

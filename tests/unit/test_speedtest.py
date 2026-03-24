@@ -61,21 +61,23 @@ class TestSpeedTestRunner:
 
     @pytest.mark.asyncio
     async def test_ookla_returns_result(self) -> None:
-        """Ookla runner parses JSON output correctly."""
+        """Ookla runner parses speedtest-cli JSON output correctly."""
         from netsentry.speedtest.ookla import run_ookla
 
+        # speedtest-cli --json format: download/upload in bits/s, ping in ms
         fake_output = """{
-            "download": {"bandwidth": 10000000},
-            "upload": {"bandwidth": 5000000},
-            "ping": {"latency": 12.5},
-            "server": {"name": "Speedtest Server", "location": "London"}
+            "download": 80000000,
+            "upload": 40000000,
+            "ping": 12.5,
+            "server": {"name": "Speedtest Server", "country": "GB"}
         }"""
         with patch("netsentry.speedtest.ookla._run_subprocess", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = (fake_output, "")
             result = await run_ookla()
 
         assert result is not None
-        assert abs(result.download_mbps - 80.0) < 1.0  # 10000000 bytes/s → ~80 Mbps
+        assert abs(result.download_mbps - 80.0) < 1.0
+        assert abs(result.upload_mbps - 40.0) < 1.0
         assert abs(result.ping_ms - 12.5) < 0.1
         assert result.backend == "ookla"
 

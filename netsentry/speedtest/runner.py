@@ -13,47 +13,58 @@ from netsentry.speedtest.storage import SpeedTestStorage
 logger = logging.getLogger(__name__)
 
 
+async def _try_ookla() -> SpeedTestResult | None:
+    """Run Ookla speedtest-cli (installed via apt in Docker)."""
+    from netsentry.speedtest.ookla import run_ookla
+
+    return await run_ookla()
+
+
+async def _try_librespeed() -> SpeedTestResult | None:
+    """Run librespeed-cli (optional install)."""
+    from netsentry.speedtest.librespeed import run_librespeed
+
+    server_url = os.environ.get("LIBRESPEED_SERVER_URL")
+    return await run_librespeed(server_url=server_url)
+
+
 async def run_speed_test(conn: aiosqlite.Connection) -> SpeedTestResult | None:
     """
-    Run a speed test using the configured backend.
+    Run a speed test trying backends in order until one succeeds.
 
-    Backend priority:
-    - librespeed: tries librespeed-cli, requires LIBRESPEED_SERVER_URL if
-                  no public server is configured (self-hosted only)
-    - ookla:      tries official speedtest-cli (installed in container)
-    - auto:       tries librespeed first, then ookla
-
-    If the configured backend fails, always falls back through all available
-    backends before giving up.
-
-    Saves the result to the database if successful.
+    Order: configured backend first, then fallbacks.
+    Results are saved to the database.
     """
     backend = os.environ.get("SPEEDTEST_BACKEND", "ookla").lower()
     result: SpeedTestResult | None = None
 
-    # Try librespeed first if configured or auto
-    if backend in ("librespeed", "auto"):
-        from netsentry.speedtest.librespeed import run_librespeed
+    # Build ordered list of backends to try
+    if backend == "librespeed":
+        backends = [_try_librespeed, _try_ookla]
+    elif backend == "ookla":
+        backends = [_try_ookla, _try_librespeed]
+    else:  # auto
+        backends = [_try_ookla, _try_librespeed]
 
-        server_url = os.environ.get("LIBRESPEED_SERVER_URL")
-        result = await run_librespeed(server_url=server_url)
-        if result:
-            logger.info("Speed test completed via librespeed")
-
-    # Try ookla — always attempt as fallback even if librespeed was configured
-    if result is None:
-        if backend in ("ookla", "auto") or backend == "librespeed":
-            from netsentry.speedtest.ookla import run_ookla
-
-            logger.info("Trying Ookla speedtest backend")
-            result = await run_ookla()
-            if result:
-                logger.info("Speed test completed via ookla")
+    for backend_fn in backends:
+        try:
+            result = await backend_fn()
+            if result is not None:
+                logger.info(
+                    "Speed test: ↓%.1f Mbps ↑%.1f Mbps ping=%.0fms via %s",
+                    result.download_mbps,
+                    result.upload_mbps,
+                    result.ping_ms,
+                    result.backend,
+                )
+                break
+        except Exception as e:
+            logger.warning("Speed test backend %s failed: %s", backend_fn.__name__, e)
 
     if result is None:
         logger.warning(
             "All speed test backends failed. "
-            "Ensure speedtest-cli is installed or set LIBRESPEED_SERVER_URL."
+            "Ensure speedtest-cli is installed (it should be in the Docker image)."
         )
         return None
 
