@@ -2,7 +2,7 @@
 NetSentry FastAPI application factory.
 
 Usage:
-    uvicorn netsentry.api.main:create_app --factory --host 0.0.0.0 --port 8080
+    uvicorn netsentry.api.main:create_app --factory --host 0.0.0.0 --port 8282
 """
 
 from __future__ import annotations

@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # ── API ────────────────────────────────────────────────────────────────────
     api_host: str = "0.0.0.0"
-    api_port: int = 8080
+    api_port: int = 8282
     api_key: str | None = None  # Optional: enable X-API-Key header auth
 
     # ── HTTPS ──────────────────────────────────────────────────────────────────

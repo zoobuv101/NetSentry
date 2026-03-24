@@ -32,7 +32,7 @@ class TestSettings:
         assert s.log_level == "INFO"
         assert s.db_path == "/data/netsentry.db"
         assert s.scan_interval_arp == 300
-        assert s.api_port == 8080
+        assert s.api_port == 8282
         assert s.enable_deco_integration is True
 
     def test_settings_overrides_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:

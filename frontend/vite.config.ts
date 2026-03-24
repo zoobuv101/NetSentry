@@ -13,7 +13,7 @@ const viteConfig = defineConfig({
   },
   server: {
     proxy: {
-      "/api": { target: "http://localhost:8080", changeOrigin: true },
+      "/api": { target: "http://localhost:8282", changeOrigin: true },
     },
   },
 });

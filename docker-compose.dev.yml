@@ -32,7 +32,7 @@ services:
     command: >
       sh -c "alembic upgrade head &&
              uvicorn netsentry.api.main:create_app
-             --factory --host 0.0.0.0 --port 8080
+             --factory --host 0.0.0.0 --port 8282
              --reload --log-level debug"
     # Expose port explicitly in dev (host networking still active)
     ports: []  # host networking — port is on host directly
