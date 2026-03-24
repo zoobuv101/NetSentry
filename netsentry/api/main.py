@@ -45,12 +45,140 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Open the shared async DB connection and attach to app state
     conn = await get_connection(settings.db_path)
     app.state.db = conn
-
     logger.info("Database ready at %s", settings.db_path)
+
+    # ── Build scan orchestrator ───────────────────────────────────────
+    from netsentry.scanner.orchestrator import ScanOrchestrator
+    from netsentry.scanner.oui import OuiDatabase
+    from netsentry.scanner.subnets import get_subnets
+
+    oui_db = OuiDatabase()
+    subnets = get_subnets(settings.scan_subnets or None)
+    if not subnets:
+        logger.warning("No subnets configured — set SCAN_SUBNETS in .env")
+
+    orchestrator = ScanOrchestrator(conn=conn, oui_db=oui_db, subnets=subnets)
+    app.state.orchestrator = orchestrator
+
+    # ── Start APScheduler ─────────────────────────────────────────────
+    from netsentry.core.scheduler import NetSentryScheduler
+
+    scheduler = NetSentryScheduler()
+    scheduler.register_scan_jobs(
+        orchestrator,
+        arp_interval=settings.scan_interval_arp,
+        port_interval=settings.scan_interval_ports,
+    )
+
+    # Availability monitor
+    if settings.enable_availability_monitoring:
+        from netsentry.monitor.monitor import AvailabilityMonitor
+
+        availability_monitor = AvailabilityMonitor(conn=conn)
+        scheduler._scheduler.add_job(
+            availability_monitor.run_probe_cycle,
+            trigger="interval",
+            seconds=60,
+            id="availability_probe",
+            max_instances=1,
+        )
+        logger.info("Availability monitoring enabled (60s interval)")
+
+    # Deco poller
+    if settings.enable_deco_integration and settings.deco_host:
+        try:
+            from netsentry.integrations.deco.client import DecoClient
+            from netsentry.integrations.deco.poller import DecoPoller
+
+            deco_client = DecoClient.from_settings()
+            deco_poller = DecoPoller(client=deco_client, conn=conn)
+            scheduler._scheduler.add_job(
+                deco_poller.poll,
+                trigger="interval",
+                seconds=30,
+                id="deco_poll",
+                max_instances=1,
+            )
+            logger.info("Deco integration enabled (%s)", settings.deco_host)
+        except Exception as e:
+            logger.warning("Deco integration failed to start: %s", e)
+
+    # AdGuard poller
+    if settings.enable_adguard_integration and settings.adguard_url:
+        try:
+            from netsentry.integrations.adguard.client import AdGuardClient
+            from netsentry.integrations.adguard.poller import AdGuardPoller
+
+            adguard_client = AdGuardClient.from_settings()
+            adguard_poller = AdGuardPoller(client=adguard_client, conn=conn)
+            scheduler._scheduler.add_job(
+                adguard_poller.poll,
+                trigger="interval",
+                seconds=60,
+                id="adguard_poll",
+                max_instances=1,
+            )
+            logger.info("AdGuard integration enabled (%s)", settings.adguard_url)
+        except Exception as e:
+            logger.warning("AdGuard integration failed to start: %s", e)
+
+    # pfSense poller
+    if settings.enable_pfsense_integration and settings.pfsense_host:
+        try:
+            from netsentry.integrations.pfsense.client import PfSenseClient
+            from netsentry.integrations.pfsense.poller import PfSensePoller
+
+            pfsense_client = PfSenseClient(
+                host=settings.pfsense_host,
+                username=settings.pfsense_username,
+                key_path=settings.pfsense_key_path,
+                port=settings.pfsense_ssh_port,
+            )
+            pfsense_poller = PfSensePoller(client=pfsense_client, conn=conn)
+            scheduler._scheduler.add_job(
+                pfsense_poller.poll,
+                trigger="interval",
+                seconds=120,
+                id="pfsense_poll",
+                max_instances=1,
+            )
+            logger.info("pfSense integration enabled (%s)", settings.pfsense_host)
+        except Exception as e:
+            logger.warning("pfSense integration failed to start: %s", e)
+
+    # Speed test scheduler
+    if settings.enable_speedtest:
+        from netsentry.speedtest.runner import run_speed_test
+
+        async def _run_speed_test() -> None:
+            await run_speed_test(conn)
+
+        scheduler._scheduler.add_job(
+            _run_speed_test,
+            trigger="interval",
+            seconds=settings.speedtest_interval,
+            id="speedtest",
+            max_instances=1,
+        )
+        logger.info("Speed test scheduled every %ds", settings.speedtest_interval)
+
+    scheduler.start()
+    app.state.scheduler = scheduler
+    logger.info("Scheduler started with %d jobs", len(scheduler.get_jobs()))
+
+    # Run first scan immediately in the background
+    if subnets:
+        import asyncio
+
+        from netsentry.scanner.profiles import ScanProfile
+
+        asyncio.create_task(orchestrator.run_scan(ScanProfile.QUICK))
+        logger.info("Initial scan triggered")
 
     yield
 
-    # Shutdown: close DB connection
+    # Shutdown
+    scheduler.shutdown(wait=False)
     await conn.close()
     logger.info("NetSentry shutting down")
 

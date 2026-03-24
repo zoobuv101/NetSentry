@@ -60,6 +60,11 @@ class Settings(BaseSettings):
     pfsense_api_url: str | None = None
     pfsense_api_key: str | None = None
     pfsense_verify_ssl: bool = False
+    # SSH-based pfSense integration (used by default — no REST package needed)
+    pfsense_host: str | None = None
+    pfsense_ssh_port: int = 22
+    pfsense_username: str = "admin"
+    pfsense_key_path: str = "/config/id_rsa"
 
     adguard_url: str | None = None
     adguard_username: str | None = None
@@ -91,6 +96,7 @@ class Settings(BaseSettings):
     speedtest_latency_threshold_ms: float = 0.0  # 0 = disabled
 
     # ── Availability Monitoring ────────────────────────────────────────────────
+    enable_availability_monitoring: bool = True
     availability_max_monitored: int = 50
 
     # ── Cache ──────────────────────────────────────────────────────────────────

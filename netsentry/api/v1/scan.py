@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from netsentry.api.deps import get_scan_repo
@@ -13,9 +14,6 @@ from netsentry.db.repositories.scan_runs import ScanRunRepository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# In-memory scan state (simple for now — upgraded in later stories)
-_is_scanning: bool = False
 
 
 class ScanTriggerRequest(BaseModel):
@@ -35,15 +33,29 @@ class ScanStatusResponse(BaseModel):
 
 @router.post("/scan/trigger", response_model=ScanTriggerResponse, status_code=202)
 async def trigger_scan(
-    request: ScanTriggerRequest = ScanTriggerRequest(),
+    request: Request,
+    body: ScanTriggerRequest = ScanTriggerRequest(),
 ) -> ScanTriggerResponse:
     """
     Trigger an on-demand scan asynchronously.
     Returns 202 Accepted immediately; scan runs in background.
     """
-    profile = request.profile or "standard"
+    profile = body.profile or "standard"
     logger.info("On-demand scan triggered (profile=%s)", profile)
-    # Full async execution wired up when scheduler is running (lifespan)
+
+    # Fire scan in background if orchestrator is available
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    if orchestrator is not None:
+        from netsentry.scanner.profiles import ScanProfile
+
+        try:
+            scan_profile = ScanProfile.from_str(profile)
+        except ValueError:
+            scan_profile = ScanProfile.STANDARD
+        asyncio.create_task(orchestrator.run_scan(scan_profile))
+    else:
+        logger.warning("Orchestrator not available — scan not triggered")
+
     return ScanTriggerResponse(
         accepted=True,
         profile=profile,
@@ -69,6 +81,6 @@ async def scan_status(
         }
 
     return ScanStatusResponse(
-        is_scanning=_is_scanning,
+        is_scanning=False,
         last_scan=last_scan_data,
     )
