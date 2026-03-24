@@ -41,6 +41,10 @@ class PfSensePoller:
             arp_entries = await self._fetch_arp()
             dhcp_leases = await self._fetch_dhcp()
             await self._enrich(arp_entries, dhcp_leases)
+            logger.info(
+                "pfSense poll OK — %d ARP entries, %d DHCP leases",
+                len(arp_entries), len(dhcp_leases),
+            )
         except Exception as e:
             logger.warning("pfSense poll error: %s", e)
 
