@@ -1,6 +1,12 @@
+import { useState } from "react";
 import { DevicesPage } from "@/pages/DevicesPage";
+import { SettingsPage } from "@/pages/SettingsPage";
+
+type Page = "devices" | "settings";
 
 export default function App() {
+  const [page, setPage] = useState<Page>("devices");
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
@@ -17,15 +23,25 @@ export default function App() {
               <span className="text-sm font-bold text-gray-900">NetSentry</span>
             </div>
             <nav className="flex items-center gap-1 ml-4">
-              <a href="/" className="rounded-md px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50">
-                Devices
-              </a>
+              {(["devices", "settings"] as Page[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                    page === p
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
             </nav>
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <DevicesPage />
+        {page === "devices" ? <DevicesPage /> : <SettingsPage />}
       </main>
     </div>
   );
