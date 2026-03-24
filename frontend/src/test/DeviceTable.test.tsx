@@ -35,12 +35,12 @@ describe("DeviceTable", () => {
 
   it("shows online badge for online device", () => {
     render(<DeviceTable devices={[makeDevice({ is_online: true })]} loading={false} error={null} />);
-    expect(screen.getByText("Online")).toBeInTheDocument();
+    expect(screen.getAllByText("Online").length).toBeGreaterThan(0);
   });
 
   it("shows offline badge for offline device", () => {
     render(<DeviceTable devices={[makeDevice({ is_online: false })]} loading={false} error={null} />);
-    expect(screen.getByText("Offline")).toBeInTheDocument();
+    expect(screen.getAllByText("Offline").length).toBeGreaterThan(0);
   });
 
   it("shows friendly_name over hostname when set", () => {

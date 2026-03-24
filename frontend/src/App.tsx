@@ -4,7 +4,13 @@ import { DevicesPage } from "@/pages/DevicesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { useTheme } from "@/hooks/useTheme";
 
-type Page = "dashboard" | "devices" | "settings";
+export type Page = "dashboard" | "devices" | "settings";
+export type DeviceFilter = "online" | "offline" | "new_today" | null;
+
+export interface NavState {
+  page: Page;
+  deviceFilter: DeviceFilter;
+}
 
 function SunIcon() {
   return (
@@ -26,16 +32,19 @@ function MoonIcon() {
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>("dashboard");
+  const [nav, setNav] = useState<NavState>({ page: "dashboard", deviceFilter: null });
   const { isDark, toggle } = useTheme();
+
+  function navigate(page: Page, deviceFilter: DeviceFilter = null) {
+    setNav({ page, deviceFilter });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center gap-3">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("dashboard")}>
               <div className="h-7 w-7 rounded-md bg-blue-600 flex items-center justify-center">
                 <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor" strokeWidth={2}>
@@ -46,14 +55,13 @@ export default function App() {
               <span className="text-sm font-bold text-gray-900 dark:text-gray-100">NetSentry</span>
             </div>
 
-            {/* Nav */}
             <nav className="flex items-center gap-1 ml-4">
               {(["dashboard", "devices", "settings"] as Page[]).map((p) => (
                 <button
                   key={p}
-                  onClick={() => setPage(p)}
+                  onClick={() => navigate(p)}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-                    page === p
+                    nav.page === p
                       ? "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
@@ -63,7 +71,6 @@ export default function App() {
               ))}
             </nav>
 
-            {/* Dark mode toggle */}
             <button
               onClick={toggle}
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -76,9 +83,14 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {page === "dashboard" && <DashboardPage />}
-        {page === "devices"   && <DevicesPage />}
-        {page === "settings"  && <SettingsPage />}
+        {nav.page === "dashboard" && <DashboardPage navigate={navigate} />}
+        {nav.page === "devices"   && (
+          <DevicesPage
+            key={`${nav.deviceFilter}`}
+            initialFilter={nav.deviceFilter}
+          />
+        )}
+        {nav.page === "settings"  && <SettingsPage />}
       </main>
     </div>
   );
