@@ -47,7 +47,7 @@ async def _run_official_ookla(timeout: float) -> SpeedTestResult | None:
     """Run the official Ookla 'speedtest' binary (installed from packagecloud)."""
     server_id = os.environ.get("SPEEDTEST_SERVER_ID", "").strip()
 
-    cmd = ["speedtest", "--format=json", "--accept-license", "--accept-gdpr"]
+    cmd = ["ookla-speedtest", "--format=json", "--accept-license", "--accept-gdpr"]
     if server_id:
         cmd += ["--server-id", server_id]
 

@@ -48,20 +48,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     curl \
     libpcap0.8 \
-    gnupg \
+    speedtest-cli \
     && rm -rf /var/lib/apt/lists/*
 
-# Install official Ookla speedtest CLI (multi-threaded, accurate on gigabit connections).
-# The Python speedtest-cli package is single-threaded and caps out ~100Mbps.
-# Keep speedtest-cli as fallback in case the Ookla install fails.
-RUN apt-get update && apt-get install -y --no-install-recommends speedtest-cli && \
-    rm -rf /var/lib/apt/lists/* && \
-    curl -fsSL https://packagecloud.io/ookla/speedtest-cli/gpgkey | gpg --dearmor -o /usr/share/keyrings/ookla.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/ookla.gpg] https://packagecloud.io/ookla/speedtest-cli/debian/ bookworm main" \
-        > /etc/apt/sources.list.d/ookla.list && \
-    apt-get update && apt-get install -y --no-install-recommends speedtest && \
-    rm -rf /var/lib/apt/lists/* || \
-    echo "WARNING: Official Ookla CLI install failed — using Python speedtest-cli fallback"
+# Install official Ookla speedtest CLI to /usr/local/bin/ookla-speedtest.
+# Cannot use the apt package — it conflicts with speedtest-cli (both claim /usr/bin/speedtest).
+# Download the x86_64 Linux tarball directly instead; extract to a different path.
+# The NetSentry runner checks for 'ookla-speedtest' first, falls back to 'speedtest-cli'.
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+      x86_64)  OOKLA_ARCH="x86_64" ;; \
+      aarch64) OOKLA_ARCH="aarch64" ;; \
+      armv7l)  OOKLA_ARCH="armhf" ;; \
+      *)        OOKLA_ARCH="x86_64" ;; \
+    esac && \
+    curl -fsSL --max-time 30 \
+        "https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-${OOKLA_ARCH}.tgz" \
+        -o /tmp/ookla.tgz && \
+    tar -xzf /tmp/ookla.tgz -C /tmp && \
+    mv /tmp/speedtest /usr/local/bin/ookla-speedtest && \
+    chmod +x /usr/local/bin/ookla-speedtest && \
+    rm -f /tmp/ookla.tgz /tmp/speedtest.md /tmp/speedtest.5 && \
+    echo "Ookla CLI installed: $(/usr/local/bin/ookla-speedtest --version 2>&1 | head -1)" || \
+    echo "WARNING: Ookla CLI download failed — Python speedtest-cli will be used as fallback"
 
 # Create non-root user with UID 1000
 RUN useradd --uid 1000 --gid 0 --create-home --shell /bin/bash netsentry
