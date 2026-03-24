@@ -14,6 +14,7 @@ export interface InterfaceStatus {
 export interface InterfacesData {
   interfaces: InterfaceStatus[];
   source: string;
+  last_updated: string | null;
 }
 
 export function useFirewallInterfaces() {
@@ -35,7 +36,8 @@ export function useFirewallInterfaces() {
 
   useEffect(() => {
     fetch();
-    const id = setInterval(fetch, 30_000);
+    // Poll every 10s — backend caches result, no SSH per request
+    const id = setInterval(fetch, 10_000);
     return () => clearInterval(id);
   }, [fetch]);
 

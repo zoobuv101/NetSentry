@@ -184,6 +184,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if settings.enable_pfsense_integration and settings.pfsense_host:
         try:
             from netsentry.integrations.pfsense.client import PfSenseClient
+            from netsentry.integrations.pfsense.interfaces import InterfacePoller
             from netsentry.integrations.pfsense.poller import PfSensePoller
 
             pfsense_client = PfSenseClient(
@@ -200,6 +201,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 id="pfsense_poll",
                 max_instances=1,
             )
+
+            # Interface status poller — updates in-memory cache every 30s
+            # API endpoint serves from cache (no SSH per request)
+            iface_poller = InterfacePoller(
+                host=settings.pfsense_host,
+                username=settings.pfsense_username,
+                key_path=settings.pfsense_key_path,
+                port=settings.pfsense_ssh_port,
+            )
+            app.state.interface_poller = iface_poller
+            scheduler._scheduler.add_job(
+                iface_poller.poll,
+                trigger="interval",
+                seconds=30,
+                id="pfsense_interfaces",
+                max_instances=1,
+            )
+            # Warm the cache immediately
+            asyncio.create_task(iface_poller.poll())
             logger.info("pfSense integration enabled (%s via SSH)", settings.pfsense_host)
         except Exception:
             logger.exception("pfSense integration failed to start")
