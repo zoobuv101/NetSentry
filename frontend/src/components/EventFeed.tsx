@@ -3,6 +3,9 @@ interface Event {
   event_type: string;
   severity: string;
   mac_address: string | null;
+  hostname: string | null;
+  ip_address: string | null;
+  details: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -14,17 +17,20 @@ const severityStyles: Record<string, string> = {
 };
 
 const eventLabels: Record<string, string> = {
-  "device.new":         "New device",
-  "device.offline":     "Device offline",
-  "device.online":      "Device online",
-  "availability.down":  "Unreachable",
-  "availability.up":    "Reachable",
-  "deco.device_roamed": "Roamed",
+  "device.new":           "New device",
+  "device.offline":       "Went offline",
+  "device.online":        "Came online",
+  "availability.down":    "Unreachable",
+  "availability.up":      "Reachable",
+  "deco.device_roamed":   "Roamed",
 };
 
 function formatTime(iso: string) {
   try {
-    return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(iso));
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    }).format(new Date(iso));
   } catch { return iso; }
 }
 
@@ -40,18 +46,34 @@ export function EventFeed({ events }: { events: Event[] }) {
   return (
     <ul className="divide-y divide-gray-100 dark:divide-gray-800">
       {events.map((ev) => (
-        <li key={ev.id} className="flex items-center gap-3 py-2.5">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${severityStyles[ev.severity] ?? severityStyles.default}`}>
-            {eventLabels[ev.event_type] ?? ev.event_type}
-          </span>
-          {ev.mac_address && (
-            <span className="font-mono text-xs text-gray-500 dark:text-gray-400 truncate">
-              {ev.mac_address}
+        <li key={ev.id} className="py-3 flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${
+              severityStyles[ev.severity] ?? severityStyles.default
+            }`}>
+              {eventLabels[ev.event_type] ?? ev.event_type}
             </span>
-          )}
-          <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 shrink-0">
-            {formatTime(ev.timestamp)}
-          </span>
+            {/* Device name — prefer hostname, fall back to MAC */}
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+              {ev.hostname ?? ev.mac_address ?? "Unknown"}
+            </span>
+            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 shrink-0">
+              {formatTime(ev.timestamp)}
+            </span>
+          </div>
+          {/* IP address and MAC on second line */}
+          <div className="flex items-center gap-3 pl-1">
+            {ev.ip_address && (
+              <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                {ev.ip_address}
+              </span>
+            )}
+            {ev.mac_address && (
+              <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                {ev.mac_address}
+              </span>
+            )}
+          </div>
         </li>
       ))}
     </ul>

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from typing import Any
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -31,6 +32,7 @@ class SpeedSummary(BaseModel):
     upload_mbps: float | None
     ping_ms: float | None
     grade: str | None
+    server: str | None
     tested_at: str | None
 
 
@@ -50,6 +52,9 @@ class EventSummary(BaseModel):
     event_type: str
     severity: str
     mac_address: str | None
+    hostname: str | None
+    ip_address: str | None
+    details: dict[str, Any]
     timestamp: str
 
 
@@ -109,7 +114,7 @@ async def get_dashboard_summary(request: Request) -> DashboardSummaryResponse:
 
     # ── Latest speed test ─────────────────────────────────────────────────
     async with conn.execute(
-        "SELECT download_mbps, upload_mbps, ping_ms, grade, tested_at "
+        "SELECT download_mbps, upload_mbps, ping_ms, grade, server, tested_at "
         "FROM speed_tests ORDER BY tested_at DESC LIMIT 1"
     ) as cur:
         speed_row = await cur.fetchone()
@@ -119,6 +124,7 @@ async def get_dashboard_summary(request: Request) -> DashboardSummaryResponse:
         upload_mbps=float(speed_row["upload_mbps"]) if speed_row else None,
         ping_ms=float(speed_row["ping_ms"]) if speed_row else None,
         grade=speed_row["grade"] if speed_row else None,
+        server=speed_row["server"] if speed_row else None,
         tested_at=speed_row["tested_at"] if speed_row else None,
     )
 
@@ -146,23 +152,34 @@ async def get_dashboard_summary(request: Request) -> DashboardSummaryResponse:
         except (json.JSONDecodeError, KeyError):
             pass
 
-    # ── Recent events ─────────────────────────────────────────────────────
+    # ── Recent events (joined with devices for hostname/IP) ──────────────
     async with conn.execute(
-        "SELECT id, event_type, severity, mac_address, timestamp "
-        "FROM events ORDER BY timestamp DESC LIMIT 10"
+        "SELECT e.id, e.event_type, e.severity, e.mac_address, e.details, e.timestamp, "
+        "       d.hostname, d.friendly_name, d.current_ip "
+        "FROM events e "
+        "LEFT JOIN devices d ON e.mac_address = d.mac_address "
+        "ORDER BY e.timestamp DESC LIMIT 10"
     ) as cur:
         event_rows = await cur.fetchall()
 
-    recent_events = [
-        EventSummary(
-            id=row["id"],
-            event_type=row["event_type"],
-            severity=row["severity"],
-            mac_address=row["mac_address"],
-            timestamp=row["timestamp"],
+    recent_events = []
+    for row in event_rows:
+        try:
+            details = json.loads(row["details"] or "{}")
+        except (json.JSONDecodeError, TypeError):
+            details = {}
+        recent_events.append(
+            EventSummary(
+                id=row["id"],
+                event_type=row["event_type"],
+                severity=row["severity"],
+                mac_address=row["mac_address"],
+                hostname=row["friendly_name"] or row["hostname"],
+                ip_address=row["current_ip"],
+                details=details,
+                timestamp=row["timestamp"],
+            )
         )
-        for row in event_rows
-    ]
 
     return DashboardSummaryResponse(
         devices=DeviceSummary(

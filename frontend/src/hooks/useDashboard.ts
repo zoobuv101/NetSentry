@@ -18,6 +18,7 @@ export interface DashboardData {
     upload_mbps: number | null;
     ping_ms: number | null;
     grade: string | null;
+    server: string | null;
     tested_at: string | null;
   };
   notifications: {
@@ -34,6 +35,9 @@ export interface DashboardData {
     event_type: string;
     severity: string;
     mac_address: string | null;
+    hostname: string | null;
+    ip_address: string | null;
+    details: Record<string, unknown>;
     timestamp: string;
   }>;
 }

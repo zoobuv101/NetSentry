@@ -29,17 +29,17 @@ describe("EventFeed", () => {
 
   it("renders event type labels", () => {
     const events = [
-      { id: 1, event_type: "device.new", severity: "urgent", mac_address: "aa:bb:cc:dd:ee:ff", timestamp: "2026-01-01T10:00:00" },
-      { id: 2, event_type: "device.offline", severity: "high", mac_address: "11:22:33:44:55:66", timestamp: "2026-01-01T09:00:00" },
+      { id: 1, event_type: "device.new", severity: "urgent", mac_address: "aa:bb:cc:dd:ee:ff", hostname: "my-phone", ip_address: "192.168.1.10", details: {}, timestamp: "2026-01-01T10:00:00" },
+      { id: 2, event_type: "device.offline", severity: "high", mac_address: "11:22:33:44:55:66", hostname: null, ip_address: null, details: {}, timestamp: "2026-01-01T09:00:00" },
     ];
     render(<EventFeed events={events} />);
     expect(screen.getByText("New device")).toBeInTheDocument();
-    expect(screen.getByText("Device offline")).toBeInTheDocument();
+    expect(screen.getByText("Went offline")).toBeInTheDocument();
   });
 
   it("renders MAC addresses", () => {
     const events = [
-      { id: 1, event_type: "device.new", severity: "info", mac_address: "aa:bb:cc:dd:ee:ff", timestamp: "2026-01-01T10:00:00" },
+      { id: 1, event_type: "device.new", severity: "info", mac_address: "aa:bb:cc:dd:ee:ff", hostname: "my-phone", ip_address: "192.168.1.10", details: {}, timestamp: "2026-01-01T10:00:00" },
     ];
     render(<EventFeed events={events} />);
     expect(screen.getByText("aa:bb:cc:dd:ee:ff")).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe("EventFeed", () => {
 
   it("handles null mac_address gracefully", () => {
     const events = [
-      { id: 1, event_type: "system.startup", severity: "info", mac_address: null, timestamp: "2026-01-01T10:00:00" },
+      { id: 1, event_type: "system.startup", severity: "info", mac_address: null, hostname: null, ip_address: null, details: {}, timestamp: "2026-01-01T10:00:00" },
     ];
     render(<EventFeed events={events} />);
     expect(screen.queryByText("null")).not.toBeInTheDocument();
