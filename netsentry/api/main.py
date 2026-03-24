@@ -54,13 +54,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from netsentry.scanner.subnets import get_subnets
 
         oui_db = OuiDatabase()
-        subnets = get_subnets(settings.scan_subnets or None)
-        if not subnets:
-            logger.warning("No subnets detected — set SCAN_SUBNETS=192.168.x.0/24 in .env")
+
+        # Prefer explicit config over auto-detection — auto-detect is unreliable in Docker
+        if settings.scan_subnets:
+            subnets = get_subnets(settings.scan_subnets)
+            logger.info("Using configured subnets: %s", subnets)
+        else:
+            subnets = get_subnets(None)
+            if subnets:
+                logger.info("Auto-detected subnets: %s", subnets)
+            else:
+                logger.warning(
+                    "⚠️  No subnets found! Set SCAN_SUBNETS=192.168.x.0/24 in .env "
+                    "— scanning is disabled until this is configured."
+                )
 
         orchestrator = ScanOrchestrator(conn=conn, oui_db=oui_db, subnets=subnets)
         app.state.orchestrator = orchestrator
-        logger.info("Scan orchestrator ready (subnets: %s)", subnets or "auto-detect pending")
+        logger.info("Scan orchestrator ready (subnets: %s)", subnets or "NONE — scanning disabled")
     except Exception:
         logger.exception("Scan orchestrator failed to init — scanning disabled")
         orchestrator = None
@@ -192,9 +203,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from netsentry.scanner.profiles import ScanProfile
 
         asyncio.create_task(orchestrator.run_scan(ScanProfile.QUICK))
-        logger.info("Initial quick scan triggered")
+        logger.info("Initial quick scan triggered on subnets: %s", subnets)
 
-    logger.info("NetSentry startup complete")
+    # ── Startup summary ───────────────────────────────────────────────
+    jobs = scheduler.get_jobs() if hasattr(app.state, "scheduler") else []
+    logger.info(
+        "✅ NetSentry startup complete — %d scheduler jobs active: %s",
+        len(jobs),
+        [j.id for j in jobs],
+    )
     yield
 
     # ── Shutdown ──────────────────────────────────────────────────────
