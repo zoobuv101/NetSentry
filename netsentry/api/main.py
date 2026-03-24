@@ -24,29 +24,32 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
-    FastAPI lifespan context manager.
-    Startup: run DB migrations, start scheduler, warn on missing config.
-    Shutdown: stop scheduler, close DB connections.
+    FastAPI lifespan — runs migrations, opens DB, starts scheduler.
     """
     settings = get_settings()
 
-    # Configure logging
     logging.basicConfig(
         level=getattr(logging, settings.log_level),
         format="%(asctime)s %(levelname)s %(name)s — %(message)s",
     )
-
     logger.info("NetSentry v%s starting up", settings.app_version)
-
-    # Warn about unconfigured optional integrations
     settings.warn_missing_optional()
 
-    # TODO (US0003): Run Alembic migrations here
-    # TODO (US0007): Start APScheduler here
+    # Run Alembic migrations before accepting any requests
+    from netsentry.db.connection import get_connection, run_migrations
+
+    run_migrations(settings.db_path)
+
+    # Open the shared async DB connection and attach to app state
+    conn = await get_connection(settings.db_path)
+    app.state.db = conn
+
+    logger.info("Database ready at %s", settings.db_path)
 
     yield
 
-    # TODO (US0007): Stop APScheduler here
+    # Shutdown: close DB connection
+    await conn.close()
     logger.info("NetSentry shutting down")
 
 
@@ -64,18 +67,15 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
-    # CORS — LAN-only by default; allow same-origin and local network ranges
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Tightened in production via ALLOWED_ORIGINS env var
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # Mount API router
     app.include_router(v1_router, prefix="/api/v1")
-
     return app
 
 
