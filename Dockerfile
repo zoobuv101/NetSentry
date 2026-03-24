@@ -48,8 +48,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     curl \
     libpcap0.8 \
-    speedtest-cli \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install official Ookla speedtest CLI (multi-threaded, accurate on gigabit connections).
+# The Python speedtest-cli package is single-threaded and caps out ~100Mbps.
+# Keep speedtest-cli as fallback in case the Ookla install fails.
+RUN apt-get update && apt-get install -y --no-install-recommends speedtest-cli && \
+    rm -rf /var/lib/apt/lists/* && \
+    curl -fsSL https://packagecloud.io/ookla/speedtest-cli/gpgkey | gpg --dearmor -o /usr/share/keyrings/ookla.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/ookla.gpg] https://packagecloud.io/ookla/speedtest-cli/debian/ bookworm main" \
+        > /etc/apt/sources.list.d/ookla.list && \
+    apt-get update && apt-get install -y --no-install-recommends speedtest && \
+    rm -rf /var/lib/apt/lists/* || \
+    echo "WARNING: Official Ookla CLI install failed — using Python speedtest-cli fallback"
 
 # Create non-root user with UID 1000
 RUN useradd --uid 1000 --gid 0 --create-home --shell /bin/bash netsentry
