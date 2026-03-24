@@ -10,10 +10,13 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from netsentry.api.v1.router import router as v1_router
 from netsentry.core.config import get_settings
@@ -76,6 +79,34 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(v1_router, prefix="/api/v1")
+
+    # Serve the compiled React frontend
+    # Built by: cd frontend && pnpm build  (output → frontend/dist)
+    static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+    if static_dir.exists():
+        # Serve static assets (JS, CSS, images)
+        app.mount(
+            "/assets",
+            StaticFiles(directory=static_dir / "assets"),
+            name="assets",
+        )
+
+        # SPA catch-all — any non-API route returns index.html
+        # API routes that don't exist will still naturally 404 via FastAPI
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def spa_fallback(full_path: str) -> FileResponse:
+            # Let API routes fall through to FastAPI's normal 404 handling
+            if full_path.startswith("api/"):
+                from fastapi import HTTPException
+
+                raise HTTPException(status_code=404)
+            return FileResponse(static_dir / "index.html")
+
+    else:
+        logger.warning(
+            "Frontend dist not found at %s — run 'cd frontend && pnpm build'", static_dir
+        )
+
     return app
 
 

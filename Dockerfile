@@ -67,11 +67,11 @@ RUN mkdir -p /data /config && chown -R netsentry:root /data /config /app
 USER netsentry
 
 # Expose API port (informational — actual binding via network_mode: host)
-EXPOSE 8080
+EXPOSE 8282
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --retries=6 --start-period=20s \
-    CMD curl -f http://localhost:8080/api/v1/system/health || exit 1
+    CMD curl -f http://localhost:8282/api/v1/system/health || exit 1
 
 # Entrypoint: run Alembic migrations then start uvicorn
-CMD ["sh", "-c", "alembic upgrade head && uvicorn netsentry.api.main:create_app --factory --host 0.0.0.0 --port 8080 --log-level info"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn netsentry.api.main:create_app --factory --host 0.0.0.0 --port 8282 --log-level info"]

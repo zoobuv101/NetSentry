@@ -189,5 +189,5 @@ class TestPackageStructure:
         client = TestClient(create_app())
         # Health is at /api/v1/system/health — confirms prefix is correct
         assert client.get("/api/v1/system/health").status_code == 200
-        # Without prefix returns 404
-        assert client.get("/system/health").status_code == 404
+        # Without /api/v1 prefix — SPA serves index.html (200)
+        assert client.get("/api/v1/this-does-not-exist").status_code == 404
