@@ -70,16 +70,26 @@ COPY --from=frontend --chown=netsentry:root /frontend/dist /app/frontend/dist
 # Copy Alembic config
 COPY alembic.ini /app/alembic.ini
 
+# Allow netsentry (UID 1000) to run network scanning tools without password.
+# NET_RAW capability alone is insufficient — arp-scan and nmap need root
+# or explicit sudo permission to send raw packets.
+RUN apt-get update && apt-get install -y --no-install-recommends sudo && \
+    rm -rf /var/lib/apt/lists/* && \
+    echo "netsentry ALL=(root) NOPASSWD: /usr/sbin/arp-scan, /usr/bin/nmap, /usr/bin/fping, /usr/sbin/nbtscan" \
+    >> /etc/sudoers.d/netsentry && \
+    chmod 0440 /etc/sudoers.d/netsentry
+
 # Create data and config directories with correct ownership
 RUN mkdir -p /data /config /app/data && chown -R netsentry:root /data /config /app
 
 # Download Wireshark OUI vendor database for device identification
-# Falls back gracefully if network unavailable during build
-RUN curl -sL --max-time 30 \
-    "https://gitlab.com/wireshark/wireshark/-/raw/master/manuf" \
-    -o /app/data/manuf \
-    && echo "OUI database: $(wc -l < /app/data/manuf) entries" \
-    || echo "WARNING: OUI download failed — vendor lookup unavailable"
+# Try GitHub mirror first (more reliable), fall back to bundled minimal database
+RUN curl -fsSL --max-time 30 \
+    "https://raw.githubusercontent.com/boundary/wireshark/master/manuf" \
+    -o /app/data/manuf 2>/dev/null && \
+    echo "OUI database downloaded: $(grep -c '^[0-9A-Fa-f]' /app/data/manuf) entries" || \
+    (echo "WARNING: OUI download failed — using bundled vendor list" && \
+     cp /app/netsentry/data/manuf /app/data/manuf)
 
 # Switch to non-root user
 USER netsentry

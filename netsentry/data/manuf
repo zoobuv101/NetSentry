@@ -1,0 +1,212 @@
+# Minimal bundled OUI database — common vendors
+# Full database downloaded at build time from Wireshark
+# Format: OUI<tab>ShortName<tab>LongName
+00:00:0C	Cisco	Cisco Systems, Inc
+00:01:42	Cisco	Cisco Systems, Inc
+00:50:56	VMware	VMware, Inc.
+00:0C:29	VMware	VMware, Inc.
+00:05:69	VMware	VMware, Inc.
+00:1C:42	Parallels	Parallels, Inc.
+08:00:27	VirtualBox	PCS Systemtechnik GmbH
+00:03:FF	Microsoft	Microsoft Corporation
+00:15:5D	Microsoft	Microsoft Hyper-V
+28:CF:E9	Apple	Apple, Inc.
+AC:DE:48	Apple	Apple, Inc.
+00:03:93	Apple	Apple, Inc.
+00:0A:27	Apple	Apple, Inc.
+00:0A:95	Apple	Apple, Inc.
+00:11:24	Apple	Apple, Inc.
+00:14:51	Apple	Apple, Inc.
+00:16:CB	Apple	Apple, Inc.
+00:17:F2	Apple	Apple, Inc.
+00:19:E3	Apple	Apple, Inc.
+00:1B:63	Apple	Apple, Inc.
+00:1C:B3	Apple	Apple, Inc.
+00:1D:4F	Apple	Apple, Inc.
+00:1E:52	Apple, Inc.	Apple, Inc.
+00:1F:F3	Apple	Apple, Inc.
+00:21:E9	Apple	Apple, Inc.
+00:22:41	Apple	Apple, Inc.
+00:23:12	Apple	Apple, Inc.
+00:23:32	Apple	Apple, Inc.
+00:23:6C	Apple	Apple, Inc.
+00:25:00	Apple	Apple, Inc.
+00:25:4B	Apple	Apple, Inc.
+00:25:BC	Apple	Apple, Inc.
+00:26:08	Apple	Apple, Inc.
+00:26:4A	Apple	Apple, Inc.
+00:26:B0	Apple	Apple, Inc.
+00:26:BB	Apple	Apple, Inc.
+3C:07:54	Apple	Apple, Inc.
+34:15:9E	Apple	Apple, Inc.
+F0:DB:F8	Apple	Apple, Inc.
+A4:D1:8C	Apple	Apple, Inc.
+B8:09:8A	Apple	Apple, Inc.
+04:52:F3	Apple	Apple, Inc.
+70:EC:E4	Apple	Apple, Inc.
+F8:1E:DF	Apple	Apple, Inc.
+18:AF:61	Samsung	Samsung Electronics Co., Ltd
+00:07:AB	Samsung	Samsung Electronics Co., Ltd
+00:12:47	Samsung	Samsung Electronics Co., Ltd
+00:15:B9	Samsung	Samsung Electronics Co., Ltd
+00:17:C9	Samsung	Samsung Electronics Co., Ltd
+00:1A:8A	Samsung	Samsung Electronics Co., Ltd
+00:1B:98	Samsung	Samsung Electronics Co., Ltd
+00:1C:43	Samsung	Samsung Electronics Co., Ltd
+00:1D:25	Samsung	Samsung Electronics Co., Ltd
+00:1E:7D	Samsung	Samsung Electronics Co., Ltd
+00:21:19	Samsung	Samsung Electronics Co., Ltd
+00:23:39	Samsung	Samsung Electronics Co., Ltd
+00:23:99	Samsung	Samsung Electronics Co., Ltd
+00:24:54	Samsung	Samsung Electronics Co., Ltd
+00:26:37	Samsung	Samsung Electronics Co., Ltd
+14:49:E0	TP-Link	TP-LINK Technologies Co., Ltd.
+50:C7:BF	TP-Link	TP-LINK Technologies Co., Ltd.
+B0:BE:76	TP-Link	TP-LINK Technologies Co., Ltd.
+5C:A6:E6	TP-Link	TP-LINK Technologies Co., Ltd.
+14:CC:20	TP-Link	TP-LINK Technologies Co., Ltd.
+F4:F2:6D	TP-Link	TP-LINK Technologies Co., Ltd.
+84:16:F9	TP-Link	TP-LINK Technologies Co., Ltd.
+30:B5:C2	TP-Link	TP-LINK Technologies Co., Ltd.
+00:1D:0F	ASUSTek	ASUSTek Computer Inc.
+00:22:15	ASUSTek	ASUSTek Computer Inc.
+00:23:54	ASUSTek	ASUSTek Computer Inc.
+00:24:8C	ASUSTek	ASUSTek Computer Inc.
+BC:AE:C5	ASUSTek	ASUSTek Computer Inc.
+04:D4:C4	ASUSTek	ASUSTek Computer Inc.
+00:0E:A6	ASUSTek	ASUSTek Computer Inc.
+00:11:2F	ASUSTek	ASUSTek Computer Inc.
+00:13:D4	ASUSTek	ASUSTek Computer Inc.
+00:15:F2	ASUSTek	ASUSTek Computer Inc.
+00:17:31	ASUSTek	ASUSTek Computer Inc.
+00:19:DB	ASUSTek	ASUSTek Computer Inc.
+18:31:BF	ASUSTek	ASUSTek Computer Inc.
+74:D4:35	ASUSTek	ASUSTek Computer Inc.
+00:04:23	Intel	Intel Corporation
+00:02:B3	Intel	Intel Corporation
+00:03:47	Intel	Intel Corporation
+00:0E:35	Intel	Intel Corporation
+00:12:F0	Intel	Intel Corporation
+00:13:02	Intel	Intel Corporation
+00:13:20	Intel	Intel Corporation
+00:15:00	Intel	Intel Corporation
+00:15:17	Intel	Intel Corporation
+00:16:76	Intel	Intel Corporation
+00:16:EA	Intel	Intel Corporation
+00:18:DE	Intel	Intel Corporation
+00:19:D1	Intel	Intel Corporation
+00:19:D2	Intel	Intel Corporation
+00:1B:21	Intel	Intel Corporation
+00:1C:BF	Intel	Intel Corporation
+00:1D:E0	Intel	Intel Corporation
+00:1E:64	Intel	Intel Corporation
+00:1E:65	Intel	Intel Corporation
+00:1F:3B	Intel	Intel Corporation
+00:21:5C	Intel	Intel Corporation
+00:21:5D	Intel	Intel Corporation
+00:22:FA	Intel	Intel Corporation
+00:23:14	Intel	Intel Corporation
+00:23:8B	Intel	Intel Corporation
+00:24:D6	Intel	Intel Corporation
+00:24:D7	Intel	Intel Corporation
+00:27:10	Intel	Intel Corporation
+B8:88:E3	Intel	Intel Corporation
+8C:8D:28	Intel	Intel Corporation
+00:13:3B	Ubiquiti	Ubiquiti Networks Inc.
+00:15:6D	Ubiquiti	Ubiquiti Networks Inc.
+00:27:22	Ubiquiti	Ubiquiti Networks Inc.
+04:18:D6	Ubiquiti	Ubiquiti Networks Inc.
+0A:18:D6	Ubiquiti	Ubiquiti Networks Inc.
+24:A4:3C	Ubiquiti	Ubiquiti Networks Inc.
+44:D9:E7	Ubiquiti	Ubiquiti Networks Inc.
+68:72:51	Ubiquiti	Ubiquiti Networks Inc.
+74:83:C2	Ubiquiti	Ubiquiti Networks Inc.
+78:8A:20	Ubiquiti	Ubiquiti Networks Inc.
+80:2A:A8	Ubiquiti	Ubiquiti Networks Inc.
+DC:9F:DB	Ubiquiti	Ubiquiti Networks Inc.
+F0:9F:C2	Ubiquiti	Ubiquiti Networks Inc.
+FC:EC:DA	Ubiquiti	Ubiquiti Networks Inc.
+00:26:5A	Netgear	NETGEAR
+00:09:5B	Netgear	NETGEAR
+00:0F:B5	Netgear	NETGEAR
+00:14:6C	Netgear	NETGEAR
+00:18:4D	Netgear	NETGEAR
+00:1B:2F	Netgear	NETGEAR
+00:1E:2A	NETGEAR	NETGEAR
+00:1F:33	NETGEAR	NETGEAR
+00:22:3F	NETGEAR	NETGEAR
+00:24:B2	NETGEAR	NETGEAR
+00:26:F2	NETGEAR	NETGEAR
+20:4E:7F	NETGEAR	NETGEAR
+2C:B0:5D	NETGEAR	NETGEAR
+30:46:9A	NETGEAR	NETGEAR
+44:94:FC	NETGEAR	NETGEAR
+6C:B0:CE	NETGEAR	NETGEAR
+A0:21:B7	NETGEAR	NETGEAR
+C0:3F:0E	NETGEAR	NETGEAR
+00:18:E7	Synology	Synology Incorporated
+00:11:32	Synology	Synology Incorporated
+BC:15:A5	Synology	Synology Incorporated
+00:08:9B	QNAP	QNAP Systems, Inc.
+24:5E:BE	QNAP	QNAP Systems, Inc.
+EC:F4:BB	QNAP	QNAP Systems, Inc.
+FC:34:97	QNAP	QNAP Systems, Inc.
+00:22:19	Belkin	Belkin International Inc.
+00:30:BD	Belkin	Belkin International Inc.
+00:1C:DF	Belkin	Belkin International Inc.
+94:44:52	Belkin	Belkin International Inc.
+EC:1A:59	Belkin	Belkin International Inc.
+00:17:88	Philips	Philips Lighting BV
+EC:B5:FA	Philips	Philips Lighting BV
+00:0C:E7	Sonos	Sonos, Inc.
+00:0C:E7	Sonos	Sonos, Inc.
+B8:E9:37	Sonos	Sonos, Inc.
+5C:AA:FD	Sonos	Sonos, Inc.
+94:9F:3E	Sonos	Sonos, Inc.
+34:7E:5C	Amazon	Amazon Technologies Inc.
+FC:A6:67	Amazon	Amazon Technologies Inc.
+44:65:0D	Amazon	Amazon Technologies Inc.
+F0:27:2D	Amazon	Amazon Technologies Inc.
+74:C2:46	Amazon	Amazon Technologies Inc.
+18:74:2E	Amazon	Amazon Technologies Inc.
+AC:63:BE	Amazon	Amazon Technologies Inc.
+00:FC:8B	Amazon	Amazon Technologies Inc.
+08:D4:0C	Amazon	Amazon Technologies Inc.
+B4:7C:9C	Amazon	Amazon Technologies Inc.
+3C:28:6D	Amazon	Amazon Technologies Inc.
+FC:0F:E6	Google	Google, Inc.
+48:D6:D5	Google	Google, Inc.
+20:DF:B9	Google	Google, Inc.
+F4:F5:D8	Google	Google, Inc.
+54:60:09	Google	Google, Inc.
+00:1A:11	Google	Google, Inc.
+3C:5A:B4	Google	Google, Inc.
+94:EB:2C	Google	Google, Inc.
+A4:77:33	Google	Google, Inc.
+00:1D:FE	Cisco	Cisco Systems, Inc.
+00:1E:13	Cisco	Cisco Systems, Inc.
+00:1E:14	Cisco	Cisco Systems, Inc.
+00:1E:49	Cisco	Cisco Systems, Inc.
+00:1E:4A	Cisco	Cisco Systems, Inc.
+00:1E:7A	Cisco	Cisco Systems, Inc.
+00:1E:BD	Cisco	Cisco Systems, Inc.
+00:1E:BE	Cisco	Cisco Systems, Inc.
+00:1E:F6	Cisco	Cisco Systems, Inc.
+00:1F:26	Cisco	Cisco Systems, Inc.
+00:1F:27	Cisco	Cisco Systems, Inc.
+00:1F:6C	Cisco	Cisco Systems, Inc.
+00:1F:6D	Cisco	Cisco Systems, Inc.
+00:1F:9D	Cisco	Cisco Systems, Inc.
+00:21:1B	Cisco	Cisco Systems, Inc.
+00:21:1C	Cisco	Cisco Systems, Inc.
+00:21:55	Cisco	Cisco Systems, Inc.
+00:21:56	Cisco	Cisco Systems, Inc.
+00:21:A0	Cisco	Cisco Systems, Inc.
+00:22:0C	Cisco	Cisco Systems, Inc.
+00:22:0D	Cisco	Cisco Systems, Inc.
+00:22:55	Cisco	Cisco Systems, Inc.
+00:22:56	Cisco	Cisco Systems, Inc.
+00:22:90	Cisco	Cisco Systems, Inc.
+00:22:91	Cisco	Cisco Systems, Inc.
+00:22:BD	Cisco	Cisco Systems, Inc.
+00:22:BE	Cisco	Cisco Systems, Inc.
