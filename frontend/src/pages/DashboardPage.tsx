@@ -43,7 +43,7 @@ export function DashboardPage() {
 
   if (error) {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400">
         {error}
       </div>
     );
@@ -51,7 +51,7 @@ export function DashboardPage() {
 
   if (loading || !data) {
     return (
-      <div className="flex items-center justify-center py-16 text-sm text-gray-400">
+      <div className="flex items-center justify-center py-16 text-sm text-gray-400 dark:text-gray-500">
         Loading dashboard…
       </div>
     );
@@ -62,10 +62,10 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
         <button
           onClick={refresh}
-          className="text-xs text-gray-500 hover:text-gray-700 underline"
+          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 underline"
         >
           Refresh
         </button>
@@ -73,7 +73,7 @@ export function DashboardPage() {
 
       {/* Device counts */}
       <div>
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
           Devices
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -87,9 +87,9 @@ export function DashboardPage() {
       {/* Speed + last scan */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Speed */}
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">Internet Speed</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Internet Speed</h2>
             <button
               onClick={handleRunSpeed}
               disabled={runningSpeed}
@@ -118,10 +118,10 @@ export function DashboardPage() {
               />
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-4">No tests yet</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No tests yet</p>
           )}
           {data.latest_speed_test.tested_at && (
-            <p className="mt-2 text-xs text-gray-400">
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
               Last tested {formatDate(data.latest_speed_test.tested_at)}
             </p>
           )}
@@ -129,8 +129,8 @@ export function DashboardPage() {
 
         {/* Last scan + AdGuard */}
         <div className="space-y-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Last Scan</h2>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Last Scan</h2>
             <div className="grid grid-cols-2 gap-2">
               <StatCard
                 label="Devices found"
@@ -146,8 +146,8 @@ export function DashboardPage() {
           </div>
 
           {data.adguard.total_queries !== null && (
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
-              <h2 className="text-sm font-semibold text-gray-700 mb-2">AdGuard DNS</h2>
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">AdGuard DNS</h2>
               <div className="grid grid-cols-2 gap-2">
                 <StatCard label="Queries" value={data.adguard.total_queries?.toLocaleString() ?? "—"} color="blue" />
                 <StatCard
@@ -163,20 +163,20 @@ export function DashboardPage() {
       </div>
 
       {/* Speed chart */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Speed History</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Speed History</h2>
         <SpeedChart />
       </div>
 
       {/* Recent events */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Recent Events</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Recent Events</h2>
         <EventFeed events={data.recent_events} />
       </div>
 
       {/* Notification status */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-2">Notifications</h2>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Notifications</h2>
         <div className="flex gap-4 text-sm">
           <div className="flex items-center gap-1.5">
             <div className={`h-2 w-2 rounded-full ${data.notifications.ntfy_enabled ? "bg-green-500" : "bg-gray-300"}`} />

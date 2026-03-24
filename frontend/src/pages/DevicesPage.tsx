@@ -20,7 +20,7 @@ export function DevicesPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Devices
             {!loading && (
               <span className="ml-2 text-sm font-normal text-gray-500">
@@ -30,14 +30,14 @@ export function DevicesPage() {
           </h1>
 
           {/* Historic toggle */}
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
             <input
               type="checkbox"
               checked={lifecycle === "historic"}
               onChange={(e) =>
                 setLifecycle(e.target.checked ? "historic" : "active")
               }
-              className="rounded border-gray-300"
+              className="rounded border-gray-300 dark:border-gray-600"
             />
             Show historic
           </label>

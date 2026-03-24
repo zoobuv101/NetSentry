@@ -22,11 +22,11 @@ interface MeshClient {
 
 function StatusPill({ enabled }: { enabled: boolean }) {
   return enabled ? (
-    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+    <span className="rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-800 dark:text-green-400">
       Configured
     </span>
   ) : (
-    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+    <span className="rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400">
       Not configured
     </span>
   );
@@ -74,31 +74,31 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-lg font-semibold text-gray-900">Settings</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
 
       {/* Notification channels */}
-      <section className="rounded-lg border border-gray-200 bg-white">
+      <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="border-b border-gray-200 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             Push Notifications
           </h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {/* ntfy */}
           <div className="flex items-center justify-between px-5 py-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">ntfy</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">ntfy</span>
                 {config && <StatusPill enabled={config.ntfy.enabled} />}
               </div>
               {config?.ntfy.url && (
-                <p className="mt-0.5 text-xs text-gray-500">{config.ntfy.url}</p>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{config.ntfy.url}</p>
               )}
             </div>
             <button
               onClick={() => handleTest("ntfy")}
               disabled={!config?.ntfy.enabled || testing === "ntfy"}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40"
             >
               {testing === "ntfy" ? "Sending…" : "Test"}
             </button>
@@ -113,11 +113,11 @@ export function SettingsPage() {
           <div className="flex items-center justify-between px-5 py-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">Telegram</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Telegram</span>
                 {config && <StatusPill enabled={config.telegram.enabled} />}
               </div>
               {config?.telegram.chat_id && (
-                <p className="mt-0.5 text-xs text-gray-500">
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                   Chat ID: {config.telegram.chat_id}
                 </p>
               )}
@@ -125,7 +125,7 @@ export function SettingsPage() {
             <button
               onClick={() => handleTest("telegram")}
               disabled={!config?.telegram.enabled || testing === "telegram"}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40"
             >
               {testing === "telegram" ? "Sending…" : "Test"}
             </button>
@@ -140,10 +140,10 @@ export function SettingsPage() {
           {config?.quiet_hours && (
             <div className="px-5 py-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">Quiet Hours</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Quiet Hours</span>
                 <StatusPill enabled={config.quiet_hours.enabled} />
               </div>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                 {String(config.quiet_hours.start_hour).padStart(2, "0")}:00 –{" "}
                 {String(config.quiet_hours.end_hour).padStart(2, "0")}:00 (UTC)
               </p>
@@ -153,22 +153,22 @@ export function SettingsPage() {
       </section>
 
       {/* Deco Topology */}
-      <section className="rounded-lg border border-gray-200 bg-white">
+      <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="border-b border-gray-200 px-5 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             Deco Mesh Topology
           </h2>
         </div>
         {!topology ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-500">
+          <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             Loading topology…
           </div>
         ) : topology.nodes.length === 0 ? (
-          <div className="px-5 py-8 text-center text-sm text-gray-500">
+          <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
             No Deco nodes found. Configure DECO_HOST to enable mesh integration.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {topology.nodes.map((node) => {
               const clients = topology.clients.filter(
                 (c) => c.deco_node_mac === node.mac_address
@@ -179,13 +179,13 @@ export function SettingsPage() {
                     <div
                       className={`h-2 w-2 rounded-full ${node.is_online ? "bg-green-500" : "bg-gray-400"}`}
                     />
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {node.model ?? node.mac_address}
                     </span>
                     <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 capitalize">
                       {node.role ?? "node"}
                     </span>
-                    <span className="ml-auto text-xs text-gray-500 font-mono">
+                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">
                       {node.mac_address}
                     </span>
                   </div>
@@ -194,11 +194,11 @@ export function SettingsPage() {
                       {clients.map((c) => (
                         <div
                           key={c.mac_address}
-                          className="flex items-center gap-3 text-xs text-gray-600"
+                          className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400"
                         >
                           <span className="font-mono">{c.mac_address}</span>
                           {c.band && (
-                            <span className="rounded bg-gray-100 px-1.5 py-0.5">
+                            <span className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
                               {c.band}
                             </span>
                           )}
