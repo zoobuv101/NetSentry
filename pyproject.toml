@@ -25,7 +25,7 @@ dependencies = [
     # Task scheduling
     "APScheduler>=3.10.0",
     # SSH
-    "paramiko>=3.0.0",
+    "apscheduler>=3.10.0,<4.0",
     # Network scanning
     "python-nmap>=0.7.1",
     "scapy>=2.5.0",
