@@ -29,10 +29,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """FastAPI lifespan — runs migrations, opens DB, starts scheduler."""
     settings = get_settings()
 
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level),
-        format="%(asctime)s %(levelname)s %(name)s — %(message)s",
-    )
+    # Configure the netsentry logger explicitly — logging.basicConfig() is a no-op
+    # when uvicorn has already configured the root logger, so we set our logger directly.
+    netsentry_logger = logging.getLogger("netsentry")
+    netsentry_logger.setLevel(getattr(logging, settings.log_level))
+    if not netsentry_logger.handlers:
+        _handler = logging.StreamHandler()
+        _handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s — %(message)s"))
+        netsentry_logger.addHandler(_handler)
+    netsentry_logger.propagate = False  # prevent double-logging via uvicorn root
+
+    print(f"[NetSentry] v{settings.app_version} starting up", flush=True)
     logger.info("NetSentry v%s starting up", settings.app_version)
 
     # ── Migrations + DB ───────────────────────────────────────────────
@@ -111,28 +118,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception:
             logger.exception("Availability monitor failed to start")
 
-    # Deco poller
+    # Deco poller — only works in router mode; AP mode has no local management API
     if settings.enable_deco_integration and settings.deco_host:
-        try:
-            from netsentry.integrations.deco.client import DecoClient
-            from netsentry.integrations.deco.poller import DecoPoller
+        if not settings.deco_router_mode:
+            logger.info(
+                "Deco: skipping poller — DECO_ROUTER_MODE=false (AP mode, local API unavailable)"
+            )
+        else:
+            try:
+                from netsentry.integrations.deco.client import DecoClient
+                from netsentry.integrations.deco.poller import DecoPoller
 
-            deco_client = DecoClient(
-                host=settings.deco_host,
-                username=settings.deco_username or "admin",
-                password=settings.deco_password or "",
-            )
-            deco_poller = DecoPoller(client=deco_client, conn=conn)
-            scheduler._scheduler.add_job(
-                deco_poller.poll,
-                trigger="interval",
-                seconds=30,
-                id="deco_poll",
-                max_instances=1,
-            )
-            logger.info("Deco integration enabled (%s)", settings.deco_host)
-        except Exception:
-            logger.exception("Deco integration failed to start")
+                deco_client = DecoClient(
+                    host=settings.deco_host,
+                    username=settings.deco_username or "admin",
+                    password=settings.deco_password or "",
+                )
+                deco_poller = DecoPoller(client=deco_client, conn=conn)
+                scheduler._scheduler.add_job(
+                    deco_poller.poll,
+                    trigger="interval",
+                    seconds=30,
+                    id="deco_poll",
+                    max_instances=1,
+                )
+                logger.info("Deco integration enabled (%s, router mode)", settings.deco_host)
+            except Exception:
+                logger.exception("Deco integration failed to start")
 
     # AdGuard poller
     if settings.enable_adguard_integration and settings.adguard_url:
