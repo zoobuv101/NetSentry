@@ -16,6 +16,7 @@ from netsentry.db.repositories.devices import DeviceRepository
 from netsentry.db.repositories.events import EventRepository
 from netsentry.db.repositories.ip_assignments import IpAssignmentRepository
 from netsentry.db.repositories.scan_runs import ScanRunRepository
+from netsentry.monitor.ping import ping_hosts_batch
 from netsentry.notifications.registry import notify
 from netsentry.scanner.arp import arp_sweep
 from netsentry.scanner.icmp import icmp_sweep
@@ -180,33 +181,75 @@ class ScanOrchestrator:
                     logger.info("Device back online: %s", host.mac)
 
         # ── Offline detection phase ────────────────────────────────────────
+        # For every online device not seen in the ARP scan, do a direct
+        # ICMP ping to its last known IP before marking it offline.
+        # ARP misses are common (sleeping phones, power-saving devices, DHCP
+        # renewal gaps) — ICMP confirms whether the device is truly unreachable.
         all_active = await self._devices.list(lifecycle="active")
-        for device in all_active:
-            if device.mac_address in seen_macs:
-                continue
-            if not device.is_online:
-                continue
-            self._missed_cycles[device.mac_address] += 1
-            if self._missed_cycles[device.mac_address] >= self._offline_threshold:
-                await self._devices.set_offline(device.mac_address)
-                await self._events.create(
-                    mac_address=device.mac_address,
-                    event_type="device.offline",
-                    severity="high",
-                    details={"last_ip": device.current_ip},
-                )
-                await notify(
-                    event_type="device.offline",
-                    severity="high",
-                    mac=device.mac_address,
-                    hostname=device.hostname or device.friendly_name,
-                    ip=device.current_ip,
-                    details={
-                        "last_ip": device.current_ip,
-                        "missed_cycles": self._missed_cycles[device.mac_address],
-                    },
-                )
-                logger.info("Device offline: %s", device.mac_address)
+        offline_candidates = [
+            d for d in all_active if d.mac_address not in seen_macs and d.is_online and d.current_ip
+        ]
+
+        if offline_candidates:
+            # Batch-ping all candidates in one fping call
+            candidate_ips = {d.current_ip: d for d in offline_candidates if d.current_ip}
+            ping_results = await ping_hosts_batch(list(candidate_ips.keys()), timeout=10.0)
+
+            for device in offline_candidates:
+                ip = device.current_ip
+                alive, _ = ping_results.get(ip, (False, None)) if ip else (False, None)
+
+                if alive:
+                    # Device responds to ping — it's online, reset miss counter
+                    self._missed_cycles[device.mac_address] = 0
+                    logger.debug(
+                        "Device %s (%s) missed ARP but responded to ping — still online",
+                        device.mac_address,
+                        ip,
+                    )
+                    continue
+
+                # Neither ARP nor ping — increment missed counter
+                self._missed_cycles[device.mac_address] += 1
+                if self._missed_cycles[device.mac_address] >= self._offline_threshold:
+                    await self._devices.set_offline(device.mac_address)
+                    await self._events.create(
+                        mac_address=device.mac_address,
+                        event_type="device.offline",
+                        severity="high",
+                        details={"last_ip": device.current_ip},
+                    )
+                    await notify(
+                        event_type="device.offline",
+                        severity="high",
+                        mac=device.mac_address,
+                        hostname=device.hostname or device.friendly_name,
+                        ip=device.current_ip,
+                        details={
+                            "last_ip": device.current_ip,
+                            "missed_cycles": self._missed_cycles[device.mac_address],
+                        },
+                    )
+                    logger.info(
+                        "Device offline (missed ARP + ping x%d): %s (%s)",
+                        self._missed_cycles[device.mac_address],
+                        device.mac_address,
+                        device.current_ip,
+                    )
+        else:
+            # No candidates — also check devices without IPs
+            for device in all_active:
+                no_ip = not device.current_ip
+                if device.mac_address not in seen_macs and device.is_online and no_ip:
+                    self._missed_cycles[device.mac_address] += 1
+                    if self._missed_cycles[device.mac_address] >= self._offline_threshold:
+                        await self._devices.set_offline(device.mac_address)
+                        await self._events.create(
+                            mac_address=device.mac_address,
+                            event_type="device.offline",
+                            severity="high",
+                            details={"last_ip": None},
+                        )
 
         # ── Finalise scan run ──────────────────────────────────────────────
         await self._scans.complete(run_id, devices_found=len(seen_macs))

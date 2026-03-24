@@ -199,13 +199,17 @@ class TestScanOrchestrator:
             mock_icmp.return_value = []
             await orchestrator.run_scan(ScanProfile.QUICK)
 
-        # Five more scans — device absent (5 = offline threshold)
+        # Five more scans — device absent from ARP and ping (5 = offline threshold)
         with (
             patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
             patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
+            patch(
+                "netsentry.scanner.orchestrator.ping_hosts_batch", new_callable=AsyncMock
+            ) as mock_ping,
         ):
             mock_arp.return_value = []
             mock_icmp.return_value = []
+            mock_ping.return_value = {"192.168.1.10": (False, None)}
             for _ in range(5):
                 await orchestrator.run_scan(ScanProfile.QUICK)
 
@@ -231,13 +235,17 @@ class TestScanOrchestrator:
             mock_icmp.return_value = []
             await orchestrator.run_scan(ScanProfile.QUICK)
 
-        # Scans 2-6: offline threshold hit (threshold=5)
+        # Scans 2-6: offline threshold hit (ARP miss + ping fails)
         with (
             patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
             patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
+            patch(
+                "netsentry.scanner.orchestrator.ping_hosts_batch", new_callable=AsyncMock
+            ) as mock_ping,
         ):
             mock_arp.return_value = []
             mock_icmp.return_value = []
+            mock_ping.return_value = {"192.168.1.10": (False, None)}
             for _ in range(5):
                 await orchestrator.run_scan(ScanProfile.QUICK)
 
@@ -256,6 +264,47 @@ class TestScanOrchestrator:
         events = await repo.list_for_device("aa:bb:cc:dd:ee:ff")
         event_types = [e.event_type for e in events]
         assert "device.online" in event_types
+
+    @pytest.mark.asyncio
+    async def test_device_stays_online_if_ping_succeeds(self, orchestrator) -> None:  # type: ignore[no-untyped-def]
+        """Device missing from ARP but responding to ping stays online — not marked offline."""
+        from netsentry.scanner.models import DiscoveredHost
+        from netsentry.scanner.profiles import ScanProfile
+
+        # Scan 1: device seen via ARP
+        with (
+            patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
+            patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
+        ):
+            mock_arp.return_value = [DiscoveredHost(ip="192.168.1.10", mac="aa:bb:cc:dd:ee:ff")]
+            mock_icmp.return_value = []
+            await orchestrator.run_scan(ScanProfile.QUICK)
+
+        # Scans 2-6: device absent from ARP but RESPONDS to ping (e.g. sleeping phone)
+        with (
+            patch("netsentry.scanner.orchestrator.arp_sweep", new_callable=AsyncMock) as mock_arp,
+            patch("netsentry.scanner.orchestrator.icmp_sweep", new_callable=AsyncMock) as mock_icmp,
+            patch(
+                "netsentry.scanner.orchestrator.ping_hosts_batch", new_callable=AsyncMock
+            ) as mock_ping,
+        ):
+            mock_arp.return_value = []
+            mock_icmp.return_value = []
+            mock_ping.return_value = {"192.168.1.10": (True, 1.2)}  # alive!
+            for _ in range(6):
+                await orchestrator.run_scan(ScanProfile.QUICK)
+
+        from netsentry.db.repositories.devices import DeviceRepository
+        from netsentry.db.repositories.events import EventRepository
+
+        device_repo = DeviceRepository(orchestrator._conn)
+        device = await device_repo.get("aa:bb:cc:dd:ee:ff")
+        assert device is not None
+        assert device.is_online is True  # should NOT have been marked offline
+
+        event_repo = EventRepository(orchestrator._conn)
+        events = await event_repo.list_for_device("aa:bb:cc:dd:ee:ff")
+        assert not any(e.event_type == "device.offline" for e in events)
 
     @pytest.mark.asyncio
     async def test_oui_vendor_resolved_for_new_device(self, orchestrator) -> None:  # type: ignore[no-untyped-def]
