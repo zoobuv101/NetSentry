@@ -21,6 +21,7 @@ const makeDevice = (overrides: Partial<Device> = {}): Device => ({
   mdns_services: [],
   last_port_scan: null,
   last_os_scan: null,
+  alerts_enabled: true,
   current_ip: "192.168.1.10",
   hostname: "my-macbook",
   lifecycle: "active",

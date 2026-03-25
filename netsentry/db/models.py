@@ -35,6 +35,7 @@ class Device:
     firewall_rules_json: str | None = None
     is_online: bool = False
     is_monitored: bool = False
+    alerts_enabled: bool = True
     # Enrichment fields (populated by port scan, OS detection, mDNS, NetBIOS, SSDP)
     open_ports_json: str = "[]"
     services_json: str = "[]"

@@ -46,6 +46,7 @@ class DeviceResponse(BaseModel):
     connection_type: str | None
     is_online: bool
     is_monitored: bool
+    alerts_enabled: bool
     first_seen: str
     last_seen: str
 
@@ -68,6 +69,12 @@ class EventEntry(BaseModel):
 class DeviceDetailResponse(DeviceResponse):
     ip_history: list[IpHistoryEntry]
     recent_events: list[EventEntry]
+
+
+class DevicePatchRequest(BaseModel):
+    alerts_enabled: bool | None = None
+    friendly_name: str | None = None
+    notes: str | None = None
 
 
 class ScanTriggerRequest(BaseModel):
@@ -134,6 +141,7 @@ def _device_to_response(d: object) -> DeviceResponse:
         connection_type=d.connection_type,
         is_online=d.is_online,
         is_monitored=d.is_monitored,
+        alerts_enabled=d.alerts_enabled,
         first_seen=d.first_seen.isoformat(),
         last_seen=d.last_seen.isoformat(),
     )
@@ -199,3 +207,30 @@ async def get_device(
             for e in recent_events
         ],
     )
+
+
+@router.patch("/devices/{mac}", response_model=DeviceResponse)
+async def patch_device(
+    mac: str,
+    body: DevicePatchRequest,
+    devices: DeviceRepository = Depends(get_device_repo),
+) -> DeviceResponse:
+    """Update per-device settings (alerts_enabled, friendly_name, notes)."""
+    norm_mac = _normalise_mac_param(mac)
+    device = await devices.get(norm_mac)
+    if device is None:
+        msg = f"No device with MAC {norm_mac}"
+        raise HTTPException(status_code=404, detail={"code": "DEVICE_NOT_FOUND", "message": msg})
+
+    if body.alerts_enabled is not None:
+        await devices.set_alerts_enabled(norm_mac, body.alerts_enabled)
+    if body.friendly_name is not None or body.notes is not None:
+        await devices.patch(
+            mac=norm_mac,
+            friendly_name=body.friendly_name,
+            notes=body.notes,
+        )
+
+    updated = await devices.get(norm_mac)
+    assert updated is not None
+    return _device_to_response(updated)

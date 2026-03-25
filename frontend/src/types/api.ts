@@ -31,6 +31,7 @@ export interface Device {
   connection_type: string | null;
   is_online: boolean;
   is_monitored: boolean;
+  alerts_enabled: boolean;
   first_seen: string;
   last_seen: string;
 }
@@ -70,4 +71,30 @@ export interface ScanStatus {
 export interface HealthResponse {
   status: string;
   version: string;
+}
+
+export interface DeviceContext {
+  hostname: string | null;
+  friendly_name: string | null;
+  current_ip: string | null;
+  vendor: string | null;
+}
+
+export interface EventLogEntry {
+  id: number;
+  event_type: string;
+  event_label: string;
+  severity: "urgent" | "high" | "info" | "low";
+  mac_address: string | null;
+  details: Record<string, unknown>;
+  timestamp: string;
+  notification_sent: boolean;
+  device: DeviceContext | null;
+}
+
+export interface EventLogResponse {
+  events: EventLogEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }

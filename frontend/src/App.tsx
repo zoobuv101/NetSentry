@@ -2,15 +2,23 @@ import { useState } from "react";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DevicesPage } from "@/pages/DevicesPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { AlertsPage } from "@/pages/AlertsPage";
 import { useTheme } from "@/hooks/useTheme";
 
-export type Page = "dashboard" | "devices" | "settings";
+export type Page = "dashboard" | "devices" | "alerts" | "settings";
 export type DeviceFilter = "online" | "offline" | "new_today" | null;
 
 export interface NavState {
   page: Page;
   deviceFilter: DeviceFilter;
 }
+
+const NAV_ITEMS: { page: Page; label: string }[] = [
+  { page: "dashboard", label: "Dashboard" },
+  { page: "devices",   label: "Devices"   },
+  { page: "alerts",    label: "Alerts"    },
+  { page: "settings",  label: "Settings"  },
+];
 
 function SunIcon() {
   return (
@@ -44,6 +52,7 @@ export default function App() {
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center gap-3">
+            {/* Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("dashboard")}>
               <div className="h-7 w-7 rounded-md bg-blue-600 flex items-center justify-center">
                 <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"
@@ -55,22 +64,24 @@ export default function App() {
               <span className="text-sm font-bold text-gray-900 dark:text-gray-100">NetSentry</span>
             </div>
 
+            {/* Nav */}
             <nav className="flex items-center gap-1 ml-4">
-              {(["dashboard", "devices", "settings"] as Page[]).map((p) => (
+              {NAV_ITEMS.map(({ page, label }) => (
                 <button
-                  key={p}
-                  onClick={() => navigate(p)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
-                    nav.page === p
+                  key={page}
+                  onClick={() => navigate(page)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    nav.page === page
                       ? "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
                       : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 >
-                  {p}
+                  {label}
                 </button>
               ))}
             </nav>
 
+            {/* Dark mode toggle */}
             <button
               onClick={toggle}
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -84,13 +95,14 @@ export default function App() {
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {nav.page === "dashboard" && <DashboardPage navigate={navigate} />}
-        {nav.page === "devices"   && (
+        {nav.page === "devices" && (
           <DevicesPage
             key={`${nav.deviceFilter}`}
             initialFilter={nav.deviceFilter}
           />
         )}
-        {nav.page === "settings"  && <SettingsPage />}
+        {nav.page === "alerts"   && <AlertsPage />}
+        {nav.page === "settings" && <SettingsPage />}
       </main>
     </div>
   );

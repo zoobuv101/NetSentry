@@ -94,3 +94,95 @@ class EventRepository(BaseRepository):
             "UPDATE events SET notification_sent = 1 WHERE id = ?",
             (event_id,),
         )
+
+    async def search(
+        self,
+        query: str | None = None,
+        event_type: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> list[Event]:
+        """
+        Search events joined with device data for cross-field filtering.
+
+        Matches query string against: event_type, mac_address, details JSON,
+        device hostname, device friendly_name, device current_ip,
+        device netbios_name, device vendor.
+        """
+        params: list[object] = []
+        where: list[str] = []
+
+        if event_type:
+            where.append("e.event_type = ?")
+            params.append(event_type)
+
+        if query and query.strip():
+            q = f"%{query.strip()}%"
+            where.append("""(
+                e.event_type LIKE ?
+                OR e.mac_address LIKE ?
+                OR e.details LIKE ?
+                OR d.hostname LIKE ?
+                OR d.friendly_name LIKE ?
+                OR d.current_ip LIKE ?
+                OR d.netbios_name LIKE ?
+                OR d.vendor LIKE ?
+            )""")
+            params.extend([q, q, q, q, q, q, q, q])
+
+        where_clause = ("WHERE " + " AND ".join(where)) if where else ""
+        params.extend([limit, offset])
+
+        rows = await self.fetchall(
+            f"""
+            SELECT e.*
+            FROM events e
+            LEFT JOIN devices d ON e.mac_address = d.mac_address
+            {where_clause}
+            ORDER BY e.timestamp DESC
+            LIMIT ? OFFSET ?
+            """,  # noqa: S608
+            tuple(params),
+        )
+        return [_row_to_event(r) for r in rows]
+
+    async def count(
+        self,
+        query: str | None = None,
+        event_type: str | None = None,
+    ) -> int:
+        """Count events matching the same filters as search()."""
+        params: list[object] = []
+        where: list[str] = []
+
+        if event_type:
+            where.append("e.event_type = ?")
+            params.append(event_type)
+
+        if query and query.strip():
+            q = f"%{query.strip()}%"
+            where.append("""(
+                e.event_type LIKE ?
+                OR e.mac_address LIKE ?
+                OR e.details LIKE ?
+                OR d.hostname LIKE ?
+                OR d.friendly_name LIKE ?
+                OR d.current_ip LIKE ?
+                OR d.netbios_name LIKE ?
+                OR d.vendor LIKE ?
+            )""")
+            params.extend([q, q, q, q, q, q, q, q])
+
+        where_clause = ("WHERE " + " AND ".join(where)) if where else ""
+
+        async with self._conn.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM events e
+            LEFT JOIN devices d ON e.mac_address = d.mac_address
+            {where_clause}
+            """,  # noqa: S608
+            tuple(params),
+        ) as cur:
+            row = await cur.fetchone()
+        return int(row[0]) if row else 0

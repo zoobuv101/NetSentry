@@ -45,6 +45,7 @@ def _row_to_device(row: aiosqlite.Row) -> Device:
         firewall_rules_json=row["firewall_rules_json"],
         is_online=bool(row["is_online"]),
         is_monitored=bool(row["is_monitored"]),
+        alerts_enabled=bool(_get("alerts_enabled", 1)),
         first_seen=from_iso8601(row["first_seen"]),
         last_seen=from_iso8601(row["last_seen"]),
         created_at=from_iso8601(row["created_at"]),
@@ -185,6 +186,14 @@ class DeviceRepository(BaseRepository):
         await self.execute(
             f"UPDATE devices SET {set_clause} WHERE mac_address = ?",  # noqa: S608
             params,
+        )
+
+    async def set_alerts_enabled(self, mac: str, enabled: bool) -> None:
+        """Enable or disable notifications for a specific device."""
+        mac = normalise_mac(mac)
+        await self.execute(
+            "UPDATE devices SET alerts_enabled = ?, updated_at = ? WHERE mac_address = ?",
+            (1 if enabled else 0, to_iso8601(utc_now()), mac),
         )
 
     async def purge(self, mac: str) -> None:

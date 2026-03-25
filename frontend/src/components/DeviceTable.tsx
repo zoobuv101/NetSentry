@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { api } from "@/api/client";
 import type { Device } from "@/types/api";
 
 type SortKey = "name" | "ip" | "mac" | "vendor" | "status" | "os" | "last_seen";
@@ -67,7 +68,10 @@ function SortIcon({ dir }: { dir: SortDir | null }) {
 }
 
 // ── Expandable detail row ─────────────────────────────────────────────────────
-function DeviceDetailRow({ device }: { device: Device }) {
+function DeviceDetailRow({ device, onAlertsToggle }: {
+  device: Device;
+  onAlertsToggle: (mac: string, enabled: boolean) => void;
+}) {
   const hasPorts = device.open_ports.length > 0;
   const hasServices = device.services.length > 0;
   const hasMdns = device.mdns_services.length > 0;
@@ -99,6 +103,21 @@ function DeviceDetailRow({ device }: { device: Device }) {
                   {device.last_os_scan && <span className="opacity-50 ml-1">(scanned {formatDate(device.last_os_scan)})</span>}
                 </p>
               )}
+              {/* Alerts toggle */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => onAlertsToggle(device.mac_address, !device.alerts_enabled)}
+                  className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    device.alerts_enabled
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
+                      : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                  title={device.alerts_enabled ? "Alerts on — click to silence this device" : "Alerts off — click to enable"}
+                >
+                  <span>{device.alerts_enabled ? "🔔" : "🔕"}</span>
+                  {device.alerts_enabled ? "Alerts on" : "Alerts silenced"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -164,6 +183,25 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [statusFilter, setStatusFilter] = useState<"online" | "offline" | "new_today" | null>(initialStatus);
   const [expandedMac, setExpandedMac] = useState<string | null>(null);
+  const [localDevices, setLocalDevices] = useState<Device[]>(devices);
+
+  // Keep localDevices in sync when prop changes
+  useMemo(() => setLocalDevices(devices), [devices]);
+
+  async function handleAlertsToggle(mac: string, enabled: boolean) {
+    // Optimistic update
+    setLocalDevices(prev =>
+      prev.map(d => d.mac_address === mac ? { ...d, alerts_enabled: enabled } : d)
+    );
+    try {
+      await api.patchDevice(mac, { alerts_enabled: enabled });
+    } catch {
+      // Revert on failure
+      setLocalDevices(prev =>
+        prev.map(d => d.mac_address === mac ? { ...d, alerts_enabled: !enabled } : d)
+      );
+    }
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -171,7 +209,7 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
   }
 
   const filtered = useMemo(() => {
-    let result = [...devices];
+    let result = [...localDevices];
     if (statusFilter === "online") result = result.filter(d => d.is_online);
     else if (statusFilter === "offline") result = result.filter(d => !d.is_online);
     else if (statusFilter === "new_today") result = result.filter(isNewToday);
@@ -253,9 +291,9 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
 
       {!loading && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {filtered.length === devices.length
-            ? `${devices.length} device${devices.length !== 1 ? "s" : ""}`
-            : `${filtered.length} of ${devices.length}`}
+          {filtered.length === localDevices.length
+            ? `${localDevices.length} device${localDevices.length !== 1 ? "s" : ""}`
+            : `${filtered.length} of ${localDevices.length}`}
           {" · "}
           <span className="opacity-70">Click a row to see ports &amp; OS detail</span>
         </p>
@@ -265,7 +303,7 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
         <div className="flex items-center justify-center py-16 text-sm text-gray-500">Loading devices…</div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-gray-500">
-          <span>{devices.length === 0 ? "No devices found. Waiting for first scan…" : "No devices match your filter."}</span>
+          <span>{localDevices.length === 0 ? "No devices found. Waiting for first scan…" : "No devices match your filter."}</span>
           {(filter || statusFilter) && (
             <button onClick={() => { setFilter(""); setStatusFilter(null); }} className="text-blue-500 underline text-xs">Clear filters</button>
           )}
@@ -322,7 +360,7 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{formatDate(device.last_seen)}</td>
                   </tr>
                   {expandedMac === device.mac_address && (
-                    <DeviceDetailRow key={`${device.mac_address}-detail`} device={device} />
+                    <DeviceDetailRow key={`${device.mac_address}-detail`} device={device} onAlertsToggle={handleAlertsToggle} />
                   )}
                 </React.Fragment>
               ))}
