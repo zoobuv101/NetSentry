@@ -183,28 +183,21 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [statusFilter, setStatusFilter] = useState<"online" | "offline" | "new_today" | null>(initialStatus);
   const [expandedMac, setExpandedMac] = useState<string | null>(null);
-  const [localDevices, setLocalDevices] = useState<Device[]>(devices);
+  // Optimistic overrides for alerts_enabled — keyed by mac_address
+  const [alertOverrides, setAlertOverrides] = useState<Record<string, boolean>>({});
 
   // Sync statusFilter when the prop changes (e.g. navigating from dashboard)
   useEffect(() => {
     setStatusFilter(initialStatus);
   }, [initialStatus]);
 
-  // Keep localDevices in sync when prop changes
-  useMemo(() => setLocalDevices(devices), [devices]);
-
   async function handleAlertsToggle(mac: string, enabled: boolean) {
-    // Optimistic update
-    setLocalDevices(prev =>
-      prev.map(d => d.mac_address === mac ? { ...d, alerts_enabled: enabled } : d)
-    );
+    setAlertOverrides(prev => ({ ...prev, [mac]: enabled }));
     try {
       await api.patchDevice(mac, { alerts_enabled: enabled });
     } catch {
       // Revert on failure
-      setLocalDevices(prev =>
-        prev.map(d => d.mac_address === mac ? { ...d, alerts_enabled: !enabled } : d)
-      );
+      setAlertOverrides(prev => ({ ...prev, [mac]: !enabled }));
     }
   }
 
@@ -213,8 +206,18 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
     else { setSortKey(key); setSortDir(key === "last_seen" ? "desc" : "asc"); }
   }
 
+  // Merge alertOverrides into devices — devices prop is the source of truth
+  const mergedDevices = useMemo(
+    () => devices.map(d =>
+      d.mac_address in alertOverrides
+        ? { ...d, alerts_enabled: alertOverrides[d.mac_address] }
+        : d
+    ),
+    [devices, alertOverrides]
+  );
+
   const filtered = useMemo(() => {
-    let result = [...localDevices];
+    let result = [...mergedDevices];
     if (statusFilter === "online") result = result.filter(d => d.is_online);
     else if (statusFilter === "offline") result = result.filter(d => !d.is_online);
     else if (statusFilter === "new_today") result = result.filter(isNewToday);
@@ -249,7 +252,7 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [devices, filter, sortKey, sortDir, statusFilter]);
+  }, [mergedDevices, filter, sortKey, sortDir, statusFilter]);
 
   if (error) return (
     <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
@@ -296,9 +299,9 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
 
       {!loading && (
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {filtered.length === localDevices.length
-            ? `${localDevices.length} device${localDevices.length !== 1 ? "s" : ""}`
-            : `${filtered.length} of ${localDevices.length}`}
+          {filtered.length === devices.length
+            ? `${devices.length} device${devices.length !== 1 ? "s" : ""}`
+            : `${filtered.length} of ${devices.length}`}
           {" · "}
           <span className="opacity-70">Click a row to see ports &amp; OS detail</span>
         </p>
@@ -308,7 +311,7 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
         <div className="flex items-center justify-center py-16 text-sm text-gray-500">Loading devices…</div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-gray-500">
-          <span>{localDevices.length === 0 ? "No devices found. Waiting for first scan…" : "No devices match your filter."}</span>
+          <span>{devices.length === 0 ? "No devices found. Waiting for first scan…" : "No devices match your filter."}</span>
           {(filter || statusFilter) && (
             <button onClick={() => { setFilter(""); setStatusFilter(null); }} className="text-blue-500 underline text-xs">Clear filters</button>
           )}
