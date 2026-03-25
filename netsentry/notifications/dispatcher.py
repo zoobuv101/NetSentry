@@ -93,11 +93,8 @@ class NotificationDispatcher:
             quiet_hours_end=7,
             rate_limit_seconds=300,
         )
-        telegram = TelegramChannel.from_settings()
-        if telegram:
-            logger.info("Telegram notifications enabled")
-        else:
-            logger.info("Telegram not configured — notifications disabled")
+        telegram = None  # Telegram disabled
+        logger.info("Telegram notifications disabled")
 
         return cls(engine=engine, telegram=telegram)
 
@@ -115,7 +112,13 @@ class NotificationDispatcher:
 
         Returns True if a notification was sent.
         """
+        import os
+
         details = details or {}
+
+        # Hard kill-switch — set ENABLE_TELEGRAM=false in .env to silence all alerts
+        if os.environ.get("ENABLE_TELEGRAM", "true").lower() in ("false", "0", "no"):
+            return False
 
         # Only notify for urgent/high severity
         if severity not in _NOTIFY_SEVERITIES:

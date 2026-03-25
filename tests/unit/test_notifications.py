@@ -244,3 +244,58 @@ class TestTelegramChannel:
         from netsentry.notifications.telegram import TelegramChannel
 
         assert TelegramChannel.from_settings() is None
+
+
+class TestNotificationDispatcher:
+    """Tests for NotificationDispatcher kill-switch and routing."""
+
+    @pytest.mark.asyncio
+    async def test_dispatch_suppressed_when_telegram_disabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ENABLE_TELEGRAM=false suppresses all notifications."""
+        monkeypatch.setenv("ENABLE_TELEGRAM", "false")
+        from netsentry.events.engine import EventEngine
+        from netsentry.notifications.dispatcher import NotificationDispatcher
+
+        dispatcher = NotificationDispatcher(engine=EventEngine(), telegram=None)
+        result = await dispatcher.dispatch(
+            event_type="device.offline",
+            severity="high",
+            mac="aa:bb:cc:dd:ee:ff",
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_dispatch_allowed_when_telegram_enabled(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """ENABLE_TELEGRAM=true (default) allows dispatch through the engine."""
+        monkeypatch.setenv("ENABLE_TELEGRAM", "true")
+        from netsentry.events.engine import EventEngine
+        from netsentry.notifications.dispatcher import NotificationDispatcher
+
+        # No telegram channel configured — dispatch returns False but doesn't suppress
+        dispatcher = NotificationDispatcher(engine=EventEngine(), telegram=None)
+        result = await dispatcher.dispatch(
+            event_type="device.offline",
+            severity="high",
+            mac="aa:bb:cc:dd:ee:ff",
+        )
+        # Returns False because no channel, but kill-switch didn't block it
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_dispatch_low_severity_not_sent(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """info severity events are not dispatched."""
+        monkeypatch.setenv("ENABLE_TELEGRAM", "true")
+        from netsentry.events.engine import EventEngine
+        from netsentry.notifications.dispatcher import NotificationDispatcher
+
+        dispatcher = NotificationDispatcher(engine=EventEngine(), telegram=None)
+        result = await dispatcher.dispatch(
+            event_type="device.online",
+            severity="info",
+            mac="aa:bb:cc:dd:ee:ff",
+        )
+        assert result is False

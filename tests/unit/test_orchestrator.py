@@ -210,7 +210,7 @@ class TestScanOrchestrator:
             mock_arp.return_value = []
             mock_icmp.return_value = []
             mock_ping.return_value = {"192.168.1.10": (False, None)}
-            for _ in range(5):
+            for _ in range(8):
                 await orchestrator.run_scan(ScanProfile.QUICK)
 
         from netsentry.db.repositories.devices import DeviceRepository
@@ -246,7 +246,7 @@ class TestScanOrchestrator:
             mock_arp.return_value = []
             mock_icmp.return_value = []
             mock_ping.return_value = {"192.168.1.10": (False, None)}
-            for _ in range(5):
+            for _ in range(8):
                 await orchestrator.run_scan(ScanProfile.QUICK)
 
         # Scan 4: device back

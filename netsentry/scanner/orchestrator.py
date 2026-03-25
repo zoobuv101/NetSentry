@@ -47,7 +47,7 @@ class ScanOrchestrator:
         conn: aiosqlite.Connection,
         oui_db: OuiDatabase,
         subnets: list[str],
-        offline_threshold: int = 5,
+        offline_threshold: int = 8,
     ) -> None:
         self._conn = conn
         self._oui_db = oui_db
@@ -301,17 +301,18 @@ class ScanOrchestrator:
                         severity="high",
                         details={"last_ip": device.current_ip},
                     )
-                    await notify(
-                        event_type="device.offline",
-                        severity="high",
-                        mac=device.mac_address,
-                        hostname=device.hostname or device.friendly_name,
-                        ip=device.current_ip,
-                        details={
-                            "last_ip": device.current_ip,
-                            "missed_cycles": self._missed_cycles[device.mac_address],
-                        },
-                    )
+                    if device.alerts_enabled:
+                        await notify(
+                            event_type="device.offline",
+                            severity="high",
+                            mac=device.mac_address,
+                            hostname=device.hostname or device.friendly_name,
+                            ip=device.current_ip,
+                            details={
+                                "last_ip": device.current_ip,
+                                "missed_cycles": self._missed_cycles[device.mac_address],
+                            },
+                        )
                     logger.info(
                         "Device offline (missed ARP + ping x%d): %s (%s)",
                         self._missed_cycles[device.mac_address],
