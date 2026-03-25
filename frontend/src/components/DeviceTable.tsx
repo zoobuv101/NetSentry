@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { api } from "@/api/client";
 import type { Device } from "@/types/api";
 
@@ -184,6 +184,11 @@ export function DeviceTable({ devices, loading, error, initialFilter = "", initi
   const [statusFilter, setStatusFilter] = useState<"online" | "offline" | "new_today" | null>(initialStatus);
   const [expandedMac, setExpandedMac] = useState<string | null>(null);
   const [localDevices, setLocalDevices] = useState<Device[]>(devices);
+
+  // Sync statusFilter when the prop changes (e.g. navigating from dashboard)
+  useEffect(() => {
+    setStatusFilter(initialStatus);
+  }, [initialStatus]);
 
   // Keep localDevices in sync when prop changes
   useMemo(() => setLocalDevices(devices), [devices]);

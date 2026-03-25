@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useDevices } from "@/hooks/useDevices";
 import { DeviceTable } from "@/components/DeviceTable";
 import { api } from "@/api/client";
@@ -9,6 +10,13 @@ interface Props {
 
 export function DevicesPage({ initialFilter = null }: Props) {
   const { devices, loading, error, refresh, lifecycle, setLifecycle } = useDevices();
+
+  // Track active filter as state so prop changes from dashboard deep-links
+  // are picked up even when this page is already mounted
+  const [activeFilter, setActiveFilter] = useState<DeviceFilter>(initialFilter);
+  useEffect(() => {
+    setActiveFilter(initialFilter);
+  }, [initialFilter]);
 
   async function handleScan() {
     try {
@@ -54,7 +62,7 @@ export function DevicesPage({ initialFilter = null }: Props) {
         devices={devices}
         loading={loading}
         error={error}
-        initialStatus={initialFilter}
+        initialStatus={activeFilter}
       />
     </div>
   );

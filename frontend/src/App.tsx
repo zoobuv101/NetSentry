@@ -97,7 +97,7 @@ export default function App() {
         {nav.page === "dashboard" && <DashboardPage navigate={navigate} />}
         {nav.page === "devices" && (
           <DevicesPage
-            key={`${nav.deviceFilter}`}
+            key="devices-page"
             initialFilter={nav.deviceFilter}
           />
         )}
